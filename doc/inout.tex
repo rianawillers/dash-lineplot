@@ -1,0 +1,16 @@
+\chapter{Input and Output Data}
+\label{chap:inputoutput}
+
+The script requires the following input data and folders:
+
+
+\begin{description}
+  \item[configuration file] Excel file with configuration data for the graphing utility.
+  \item[./assets] This folder houses the \ac{css} file used to format the contents of the graphing utility (by default, Dash is un-styled). It contains customized, global properties for how to display the \ac{HTML} elements. \ac{css} files can define the size, colour, font, line spacing, indentation, borders, and location of \ac{HTML} elements. An adapted style file from \url{https://codepen.io/chriddyp/pen/bWLwgP} is used.
+  \item[./icons] The icons of the various licenses of modules used are stored in this folder.
+  \item[./data] Optional data folder. The configuration file can be set up to read from several data files. This folder is used to store the demonstration test set of data files.
+\end{description}
+
+The \textbf{graphs} folder is created by the application, if it does not exist.
+Interactive \ac{HTML} output graphs from the graphing utility are stored in this folder. Clicking on file, the graph in opened in a browser and full interactive Plotly functionality is available.
+

@@ -1,0 +1,42 @@
+
+\chapter{Functional Description}
+
+Running the script triggers the creation of a window with one central web browser widget.
+The web browser widget is defined to have one page to be rendered on \ac{URL}:
+
+ \url{http://127.0.0.1:8050}.
+
+The page is constructed as an \ac{HTML} page with tagged divisions.
+The \ac{HTML} \texttt{<Div>} tag is used to make divisions of content in the web page, e.g. images, header, footer.
+
+A Dash portal is created where the \ac{HTML} page is served via a Flask server.
+Dash is a productive Python framework for building web applications.
+Written on top of Flask, Plotly.js, and React.js, Dash is ideal for building data visualization applications with highly custom user interfaces in pure Python.
+
+Dash starts a Flask server at the specified \ac{URL}.
+The server is started on a daemon thread, i.e. it will run in the background until the main application is terminated.
+This means that once the server is running, the page can be viewed in the Dash window as used in this application, or in an external browser.
+After the user closed the Dash window, the \ac{URL} can be typed in any web browser to view the current graph set rendered on the \ac{HTML} page.
+
+This page has several elements, all constructed from the information provided in the configuration file. If the user changes the graph definition in the configuration file, the updated page will only be rendered when the script is executed again.
+
+The utility is configured by data entered in an Excel data file. 
+The configuration file has any number of sheets where each sheet defines
+a different set of line graphs to be rendered on a separate tab in the graph page
+(except for the header sheet, which defines the page header.)
+The name of the graph sheets in the file always starts with \texttt{graph-} to serve as an identification to the script.
+Each graph sheet defines the height of the graphs, axes labels,
+one x-value column name and any number of sets of y-value column names.
+The graph sets can be rendered each one as a separate figure on the page, or in the subplot format.
+Each line has a number of attributes with default values if not supplied.
+The tabs on the page can be switched on/off for display purposes.
+Each active graph set can also be exported to an interactive \ac{HTML} file for later perusal.
+
+Data from the following file types can be displayed:
+\begin{itemize}
+  \item \ac{csv} files with column names provided in the first row,
+  \item first sheet of an Excel data file with column names provided in the first row,
+  \item Matlab format file with data in 'DATA', variable names in 'NAM' and time base in 'TIME'.
+\end{itemize}
+
+For more detail on the user level interaction, see Chapter~\ref{chap:userLevelDescription}.
