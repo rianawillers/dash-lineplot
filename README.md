@@ -189,3 +189,18 @@ A Div component is a wrapper for the HTML5 element.
         ]
     )
     
+This code is subject to the licenses listed below.
+You may not use this file except in compliance with these Licenses. 
+
+Python, scipy, numpy, pandas, and other 'standard' modules are licensed under the Python License: 
+
+    https://docs.python.org/3.7/license.html.  
+
+PySide: 'Qt for Python' is licensed under the LGPL3 license:
+
+    https://www.gnu.org/licenses/lgpl-3.0.html
+ 
+plotly/dash/visdcc is licensed under MIT 
+
+    https://community.plot.ly/t/pricing-and-license/9714
+    https://en.wikipedia.org/wiki/MIT_License
