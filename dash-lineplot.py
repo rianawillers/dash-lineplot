@@ -356,7 +356,13 @@ class DashLinePlot():
         if 'UseSubplots' in dft.index:
             if not np.isnan(dft[(dft['Variable']=='UseSubplots')]['Value'].values[0]):
                 useSubplots = dft[(dft['Variable']=='UseSubplots')]['Value'].values[0]
-                
+
+        # It seems that with the latest python modules, the visdcc module is not compatibl any more
+        # We need to solve this issue
+        # For the time being the subplot functionality will be disabled
+        useSubplots = False  
+        print('\nSubplots functionality disabled\n')   
+
         # graphs to disk requested?
         toDisk = True
         if 'ToDisk' in dft.index:
@@ -508,32 +514,36 @@ class DashLinePlot():
             )            
 
         # 3) Div x-axis slider 
-        instruction = '**Click on current tab to refresh the x-axis slider and the graphs**'
+        #    Disable for now
+        #    With updated python modules the "click tab again" functionaity does not work to trigger an update to the tab
+        #    This must be sorted out
 
-        setName = graph
-        thisDivList.append(
-            html.Div([
-                dcc.Markdown(id='header-xSlider-'+ setName,children=instruction),
-                dcc.RangeSlider(
-                    id='xSlider-'+ setName, min=xData.min(), max=xData.max(),  step=xSliderStep, 
-                    value=[xData.min(), xData.max()],  
-                    marks=sliderMarks, 
-                    allowCross=False,
-                    tooltip={'always_visible': False, 'placement': 'bottom'},  # use either the tooltip or the text display in next div
-                    # updatemode='drag',   # default is mouseup
-                    className='margin150'
-                ),
-                html.Div(
-                    style={'marginTop':40, 'fontSize':12},
-                    id='output-container-xSlider-'+ setName,
-                    className='margin150'
-                ),
-                dcc.Input(id='minVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type start value', className='margin150-2', style={'fontSize':12}),
-                dcc.Input(id='maxVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type end value', className='margin2', style={'fontSize':12}),
-                html.Button(id='submit-button-'+ setName, type='submit', children='Submit', className='margin2'),
-                html.Button('Reset slider', id='resetSlider-'+ setName, className='margin2'),
-            ])
-        )
+        # instruction = '**Click on current tab to refresh the x-axis slider and the graphs**'
+
+        # setName = graph
+        # thisDivList.append(
+        #     html.Div([
+        #         dcc.Markdown(id='header-xSlider-'+ setName,children=instruction),
+        #         dcc.RangeSlider(
+        #             id='xSlider-'+ setName, min=xData.min(), max=xData.max(),  step=xSliderStep, 
+        #             value=[xData.min(), xData.max()],  
+        #             marks=sliderMarks, 
+        #             allowCross=False,
+        #             tooltip={'always_visible': False, 'placement': 'bottom'},  # use either the tooltip or the text display in next div
+        #             # updatemode='drag',   # default is mouseup
+        #             className='margin150'
+        #         ),
+        #         html.Div(
+        #             style={'marginTop':40, 'fontSize':12},
+        #             id='output-container-xSlider-'+ setName,
+        #             className='margin150'
+        #         ),
+        #         dcc.Input(id='minVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type start value', className='margin150-2', style={'fontSize':12}),
+        #         dcc.Input(id='maxVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type end value', className='margin2', style={'fontSize':12}),
+        #         html.Button(id='submit-button-'+ setName, type='submit', children='Submit', className='margin2'),
+        #         html.Button('Reset slider', id='resetSlider-'+ setName, className='margin2'),
+        #     ])
+        # )
 
         # 4) Graph and data feedback Divs
 
@@ -1178,27 +1188,33 @@ class DashLinePlot():
         # ----------------------------------------------------------------------------------------------
         # now define all the callback functions:
 
-        # construct the dependencies input list [not working yet!]
-        # https://community.plot.ly/t/flexible-programmatic-variables-to-a-callback/7000
-        # inputList = ['output-container-xSlider-'+str(i) for i in self.graphTabs]
-        # INPUTS = [Input('tabs', 'value')]
-        # INPUTS.extend([Input(i, 'children') for i in inputList])
-
+        # It seems that with the latest python modules, the visdcc module is not compatibl any more
+        # We need to solve this issue
+        # For the time being the subplot functionality will be disabled
         # callback used for rendering of tabs
+        # @dashApp.callback(
+        #     [Output('tabs-content', 'children'),
+        #     Output('hover-js', 'run'),  # <-- add this to get hover on all subplot traces
+        #     ],
+        #     [Input('tabs','value')]
+        #     # INPUTS
+        # )
+        # def render_content(tab):
+        # # def render_content(tab, *args):
+        #     tabNum = int(tab.split(' ')[1])
+        #     # get the correct tab number for the js_str in complete list
+        #     jsIndex = allTabUsedIdx.index(tabNum)
+        #     js_str = jsString[jsIndex]
+        #     print(f'js_string = {js_str}\n')
+        #     return [divSets[tabNum]], js_str
+            
         @dashApp.callback(
-            [Output('tabs-content', 'children'),
-            Output('hover-js', 'run'),  # <-- add this to get hover on all subplot traces
-            ],
+            [Output('tabs-content', 'children')],
             [Input('tabs','value')]
-            # INPUTS
         )
         def render_content(tab):
-        # def render_content(tab, *args):
             tabNum = int(tab.split(' ')[1])
-            # get the correct tab number for the js_str in complete list
-            jsIndex = allTabUsedIdx.index(tabNum)
-            js_str = jsString[jsIndex]
-            return divSets[tabNum], js_str
+            return [divSets[tabNum]]
     
         # generate data clicked and selected callback functions for all possible graphs in the config
         # i.e. subplots as well as individual graph sets
@@ -1257,9 +1273,10 @@ class DashLinePlot():
                 [Input(theGraph, 'selectedData')]   # graph id and selectedData
             )
             def display_selected_data(selectedData):
+
                 msg = 'none selected'
 
-                if selectedData:
+                if selectedData is not None and 'range' in selectedData:
 
                     # for divs where we work with subplots, the number of the subplot is added to the
                     # x and y key. Get the keys programmatically.
