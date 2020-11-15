@@ -157,7 +157,7 @@ Some Python scripts import modules in ways that PyInstaller cannot detect. If th
 After analyses, it collects copies of all the files, including the active Python interpreter, and puts them with the script in a single folder, or optionally in a single executable file.
 
 The bundled application does not include any source code. PyInstaller bundles compiled Python scripts (\texttt{.pyc} files). These could in principle be decompiled to reveal the logic of the code.
-Python byte code can be obfuscated with AES256 by specifying an encryption key on PyInstaller’s command line.
+Python byte code can be obfuscated with AES256 by specifying an encryption key on PyInstaller's command line.
 
 On the first run of PyInstaller, with the main script as input parameter, a \texttt{spec} file, with the same name as the input script, is generated.
 
