@@ -518,32 +518,32 @@ class DashLinePlot():
         #    With updated python modules the "click tab again" functionaity does not work to trigger an update to the tab
         #    This must be sorted out
 
-        instruction = '**Click on current tab to refresh the x-axis slider and the graphs**'
+        # instruction = '**Click on current tab to refresh the x-axis slider and the graphs**'
 
-        setName = graph
-        thisDivList.append(
-            html.Div([
-                dcc.Markdown(id='header-xSlider-'+ setName,children=instruction),
-                dcc.RangeSlider(
-                    id='xSlider-'+ setName, min=xData.min(), max=xData.max(),  step=xSliderStep, 
-                    value=[xData.min(), xData.max()],  
-                    marks=sliderMarks, 
-                    allowCross=False,
-                    tooltip={'always_visible': False, 'placement': 'bottom'},  # use either the tooltip or the text display in next div
-                    # updatemode='drag',   # default is mouseup
-                    className='margin150'
-                ),
-                html.Div(
-                    style={'marginTop':40, 'fontSize':12},
-                    id='output-container-xSlider-'+ setName,
-                    className='margin150'
-                ),
-                dcc.Input(id='minVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type start value', className='margin150-2', style={'fontSize':12}),
-                dcc.Input(id='maxVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type end value', className='margin2', style={'fontSize':12}),
-                html.Button(id='submit-button-'+ setName, type='submit', children='Submit', className='margin2'),
-                html.Button('Reset slider', id='resetSlider-'+ setName, className='margin2'),
-            ])
-        )
+        # setName = graph
+        # thisDivList.append(
+        #     html.Div([
+        #         dcc.Markdown(id='header-xSlider-'+ setName,children=instruction),
+        #         dcc.RangeSlider(
+        #             id='xSlider-'+ setName, min=xData.min(), max=xData.max(),  step=xSliderStep, 
+        #             value=[xData.min(), xData.max()],  
+        #             marks=sliderMarks, 
+        #             allowCross=False,
+        #             tooltip={'always_visible': False, 'placement': 'bottom'},  # use either the tooltip or the text display in next div
+        #             # updatemode='drag',   # default is mouseup
+        #             className='margin150'
+        #         ),
+        #         html.Div(
+        #             style={'marginTop':40, 'fontSize':12},
+        #             id='output-container-xSlider-'+ setName,
+        #             className='margin150'
+        #         ),
+        #         dcc.Input(id='minVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type start value', className='margin150-2', style={'fontSize':12}),
+        #         dcc.Input(id='maxVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type end value', className='margin2', style={'fontSize':12}),
+        #         html.Button(id='submit-button-'+ setName, type='submit', children='Submit', className='margin2'),
+        #         html.Button('Reset slider', id='resetSlider-'+ setName, className='margin2'),
+        #     ])
+        # )
 
         # 4) Graph and data feedback Divs
 
@@ -1315,7 +1315,6 @@ class DashLinePlot():
                 ]             
             )
             def process_xSlider_data(value, nclicks, tab, mini, maxi):
-
                 # tab number in the current page layout
                 tabNum = int(tab.split(' ')[1])
                 graphSetName = 'graph-'+graphTabs[tabNum]
@@ -1326,10 +1325,10 @@ class DashLinePlot():
                 clicked_id = ctx.triggered[0]['prop_id'].split('.')[0]
                 # Get slider limits from input fields
                 if 'submit' in clicked_id:
-                    start = float(mini)
+                    start = mini
                     if start < sliderMinValues[tabNum]:
                         start = sliderMinValues[tabNum]
-                    end = float(maxi)
+                    end = maxi
                     if end > sliderMaxValues[tabNum]:
                         end = sliderMaxValues[tabNum] 
                     value[0] = start
