@@ -1,6 +1,5 @@
 # dash-lineplot
 
-
 This script reads an Excel config file and one or more of the following file types:
     
     * matlab file with data in 'DATA', variable names in 'NAM' and time base in 'TIME'
@@ -63,14 +62,35 @@ To install dash when connected to the internet:
     conda install dash
     conda install dash-html-components
     conda install dash-core-components
-    conda install dash-table
+    conda install dash-table 
     conda install dash-daq
+
+Jan 2024 install and test: build conda environment from the provided yml file
+
+    cd dash-lineplot\pythonSetup
+    conda env create -f dashplotenv.yml
+    activate dashplotenv
+    startPlotTool.bat
+
+
+Jan 2023 install: some versions had to be downgraded due to a change in Werkzeug not compatible with Dash:
+
+    https://github.com/plotly/dash/issues/1992  
+    https://stackoverflow.com/questions/30564332/how-to-download-previous-version-of-werkzeug
+
+    pip install Werkzeug==2.0.0
+    pip install dash-table==4.11.2
+    pip install dash-renderer==1.9.0
+    pip install dash-html-components==1.1.2
+    pip install dash-core-components==1.15.0
 
 This package could not be installed with 
 
     conda install visdcc
     
 Conflicts between versions. Installing from the bz2 file worked however.
+
+    Jan 2023 succesfull: pip install visdcc
 
 A mid-2019 off-line install required the following packages to be manually installed.
 
