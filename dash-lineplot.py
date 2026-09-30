@@ -8,9 +8,6 @@
 # plotly/dash is licensed under MIT https://community.plot.ly/t/pricing-and-license/9714
 # https://en.wikipedia.org/wiki/MIT_License
 #
-# PySide/Qt and visdcc were used by earlier versions and are no longer
-# dependencies; their licence notices were removed with them.
-#
 ################################################################
 
 """
@@ -44,16 +41,14 @@ at different rates therefore keep their own sample density.
 
 Every graph on a page shares the hover readout. A tab that sets commonX
 also shares one x range: zoom, pan, click and rubber-band selection on any
-of its graphs apply to all of them. See assets/graphsync.js.
+of its graphs apply to all of them. 
 
 In the present script the default config filename is './dash-config.xlsx'.
 Any other filename can be provided on the commandline using the -f input flag.
 
 Dash starts a Flask server at the specified port, so the browser must be
-pointing to the appropriate port number
-localhost:port
-The page is served to the system browser; the PySide desktop window used by
-earlier versions has been removed.
+pointing to the appropriate port number, i.e. http://127.0.0.1:8050/.
+The page is served to the system browser.
 
 This module requires the following data in the current directory:
  * icons/logoSet2long.png
@@ -68,21 +63,6 @@ this script, which solves on both Linux and Windows:
     conda env create -f environment.yml
     conda activate dashplot
 
-To use as a module in another application:
-
-1) Import the DashLinePlot class from the module. There is no
-   DashPlotWindow: the class that wrapped the server in a Qt desktop window
-   was removed along with PySide2/PyQt5, and nothing replaces it, since the
-   browser is the window now.
-
-2) In your code implement something like:
-
-    # do actual plotting
-    useCallbacks = True
-    plotConfig = './dash-config.xlsx'
-    port = '8050' 
-    dashlineplotter = DashLinePlot()
-    dashlineplotter.runPlotter(port, plotConfig, useCallbacks)
 """
 __author__='CJ & MS Willers'
 
@@ -873,7 +853,7 @@ class DashLinePlot:
 
         # graphs to disk requested?
         to_disk_rows = dft[dft['Variable'] == 'ToDisk']['Value']
-        toDisk = cellFlag(to_disk_rows.values[0], default=True) if not to_disk_rows.empty else True
+        toDisk = cellFlag(to_disk_rows.values[0], default=False) if not to_disk_rows.empty else True
 
         # commonX ties every graph on this tab to one x scale: zooming or
         # panning any of them applies the same range to all, and a click on
@@ -1678,11 +1658,7 @@ class DashLinePlot:
         """
         # Hover is now shared across every graph on the page, whether or not
         # they are on a commonX tab, through assets/graphsync.js -- a plain
-        # Dash asset, served automatically, with no package dependency. This
-        # replaces an older Plotly-subplot-based mechanism that needed
-        # visdcc.Runjs to reattach its event handler on every re-render;
-        # both subplots and visdcc were removed along with it.
-
+        # Dash asset, served automatically, with no package dependency. 
         # ----------------------------------------------------------------------------------------------
         # now define all the callback functions:
 
