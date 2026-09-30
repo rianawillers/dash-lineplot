@@ -3,6 +3,23 @@
 
 \chapter{Introduction}
 
+\begin{quotation}
+\noindent\textbf{This guide describes an earlier version of the tool and is
+kept as a historical record; it is no longer current.} It was written in
+March 2020, when the script ran inside a Qt desktop window, could be
+packaged into a standalone \texttt{dash-lineplot.exe} with PyInstaller, and
+offered Plotly subplots and an x-axis slider. All of that has since been
+removed: the Qt/PySide window and the packaged executable are gone (the
+script serves its pages to the system browser directly), subplots were
+removed outright, and the slider was replaced by the X/Y range boxes beside
+each graph. JSON configuration files are also now accepted alongside Excel
+workbooks, which this guide does not mention at all.
+For the current, maintained guide, see \texttt{docs/userguide.md} in the
+repository root -- where this guide and that one disagree, the Markdown
+guide is correct. See \texttt{suggestedwork.md} for the tracked status of
+bringing this LaTeX guide itself up to date.
+\end{quotation}
+
 The Python script \texttt{dash-lineplot.py} is a general plotting utility that aids in visualisation of captured or recorded data. It reads an Excel configuration file and forms a set of Dash data structures in \ac{HTML} pages. A Dash portal is created where the \ac{HTML} pages are served via a Flask server.
 The user has full control of the graph sets that are rendered on the pages.
 Figure~\ref{fig:examplePage} shows an example of the Dash portal with different graph sets being rendered on several tabs.

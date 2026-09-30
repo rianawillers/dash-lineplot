@@ -1,0 +1,137 @@
+/*
+ * Page density.
+ *
+ * The base stylesheet (bWLwgP.css) is a wide-margin marketing layout: its
+ * headings are 4.5rem and 3.6rem with matching margins, which is generous
+ * for prose and wasteful for a wall of graphs. These rules tighten the
+ * vertical rhythm without touching the base file.
+ *
+ * The class is set on the outermost page div from the Density header
+ * variable: density-compact (the default) or density-comfortable.
+ *
+ * Layout of one graph, in both densities:
+ *
+ *     .graph-row  (row)
+ *         .nine.columns    the graph
+ *         .three.columns   .feedback-column
+ *                              .feedback-box   Click Data
+ *                              .feedback-box   Rectangle Tool Selection Data
+ *
+ * The readouts sit beside the graph rather than beneath it, so consecutive
+ * graphs can sit almost touching.
+ */
+
+/* ---------- shared ---------- */
+
+.feedback-column {
+    /* the readouts are secondary: let the graph set the row height */
+    overflow: hidden;
+}
+
+.feedback-box pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
+}
+
+/* ---------- compact ---------- */
+
+.density-compact h1 { font-size: 2.4rem; margin-top: 0.4rem; margin-bottom: 0.3rem; }
+.density-compact h2 { font-size: 2.0rem; margin-top: 0.3rem; margin-bottom: 0.3rem; }
+.density-compact h3 { font-size: 1.7rem; margin-top: 0.3rem; margin-bottom: 0.2rem; }
+.density-compact h4,
+.density-compact h5,
+.density-compact h6 { font-size: 1.5rem; margin-top: 0.2rem; margin-bottom: 0.2rem; }
+
+.density-compact p { margin-bottom: 0.3rem; }
+
+/* Markdown blocks above and below each graph. */
+.density-compact .dash-markdown,
+.density-compact div[id^="topMarkdown-"],
+.density-compact div[id^="botMarkdown-"],
+.density-compact div[id^="headerMarkdown-"],
+.density-compact div[id^="footerMarkdown-"] {
+    margin-top: 0.1rem;
+    margin-bottom: 0.1rem;
+}
+
+/* One graph and its readouts. Near-zero separation from the next row: the
+   graph itself carries the only breathing space, inside the Plotly figure. */
+.density-compact .graph-row {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.density-compact .graph-row .columns {
+    margin-bottom: 0;
+}
+
+.density-compact .js-plotly-plot {
+    margin: 0;
+}
+
+/* The readout boxes: small, quiet, and never taller than the graph. */
+.density-compact .feedback-box {
+    margin-top: 0.2rem;
+    margin-bottom: 0.2rem;
+}
+
+.density-compact .feedback-box p {
+    margin: 0 0 0.1rem 0;
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
+
+.density-compact .feedback-box pre {
+    font-size: 1.0rem;
+    line-height: 1.2;
+    margin: 0;
+    padding: 0.2rem 0.4rem;
+    min-height: 3.2rem;
+}
+
+/* The tab strip itself. */
+.density-compact .tab { padding: 0.4rem 1rem !important; }
+
+/* ---------- comfortable ---------- */
+
+/* The roomier original spacing, kept so a config can ask for it. The
+   readouts still sit beside the graph; only the spacing differs. */
+
+.density-comfortable .graph-row {
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.density-comfortable .feedback-box {
+    margin-bottom: 1rem;
+}
+
+/* ---------- x-range entry, in the column beside the graph ---------- */
+
+.xrange-box .xrange-input {
+    width: 46%;
+    display: inline-block;
+    margin: 0 2% 0.2rem 0;
+    padding: 0.1rem 0.3rem;
+    height: auto;
+    font-size: 1.05rem;
+}
+
+.xrange-box .xrange-button {
+    width: 46%;
+    display: inline-block;
+    margin: 0 2% 0 0;
+    padding: 0 0.4rem;
+    height: 2.2rem;
+    line-height: 2.2rem;
+    font-size: 1.0rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.density-compact .xrange-box p {
+    margin: 0 0 0.1rem 0;
+    font-size: 1.1rem;
+    line-height: 1.2;
+}

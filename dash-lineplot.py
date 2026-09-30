@@ -2,246 +2,562 @@
 # The contents of this file are subject to the licenses listed below.
 # You may not use this file except in compliance with these Licenses. 
 # 
-# Python, scipy, numpy, pandas, and other 'standard' modules are licensed 
-# under the Python License: https://docs.python.org/3.7/license.html.  
+# Python, numpy, pandas, openpyxl and other 'standard' modules are
+# licensed under the Python License: https://docs.python.org/3/license.html.
 #
-# PySide: 'Qt for Python' is licensed under the LGPL3 license:
-# https://www.gnu.org/licenses/lgpl-3.0.html
-# 
-# plotly/dash/visdcc is licensed under MIT https://community.plot.ly/t/pricing-and-license/9714
+# plotly/dash is licensed under MIT https://community.plot.ly/t/pricing-and-license/9714
 # https://en.wikipedia.org/wiki/MIT_License
 #
 ################################################################
 
 """
 
-This script reads an Excel config file and one or more of the following file types:
-    * matlab file with data in 'DATA', variable names in 'NAM' and time base in 'TIME'
+This script reads a config file, in Excel or JSON form, and one or more of
+the following data file types:
     * csv files with column names in top row
     * first sheet of an xlsx file with column names in top row
-It the then proceeds to create and serve a Dash portal. 
-The page served has several elements, all constructed from the 
+    * json files holding either one record array, a list of flat objects with
+      one object per sample, or an object of named groups, one group per
+      sample rate, each selected as 'file.json#group'
+It the then proceeds to create and serve a Dash portal.
+The page served has several elements, all constructed from the
 information provided in the config file.
 
 The config file has any number of sheets where each sheet defines
-a different set of line graphs to be rendered on a separate tab 
+a different set of line graphs to be rendered on a separate tab
 (except for the header sheet, which defines the page header.)
 Each graph sheet defines the height of the graphs, axes labels,
 one x-value column name and any number of sets of y-value column names.
 Each line has a number of attributes with default values if not supplied.
 Each tab can be switched on/off for display purposes.
 Each graph set can be exported to an html file.
+A JSON config mirrors that structure one for one, using the same names.
 
-The data file is read and a set of Dash data structures are formed
-according to the Excel config file specifications.
+Nothing about the data is inferred. Column names, the time column and the
+groups of a multi-rate file are all named in the config, tables are never
+merged or resampled against one another, and a column whose values are text
+is plotted as an enumeration with its labels on the y axis. Graphs recorded
+at different rates therefore keep their own sample density.
+
+Every graph on a page shares the hover readout. A tab that sets commonX
+also shares one x range: zoom, pan, click and rubber-band selection on any
+of its graphs apply to all of them. 
 
 In the present script the default config filename is './dash-config.xlsx'.
 Any other filename can be provided on the commandline using the -f input flag.
 
-Dash starts a Flask server at the specified port, so the browser must be 
-pointing to the appropriate port number
-localhost:port
-This means that once the server is running, you can view the page with 
-the PySide browser as used here, or in an external browser.
+Dash starts a Flask server at the specified port, so the browser must be
+pointing to the appropriate port number, i.e. http://127.0.0.1:8050/.
+The page is served to the system browser.
 
 This module requires the following data in the current directory:
  * icons/logoSet2long.png
  * assets/bWLwgP.css
 
-It will create folder 'graphs' for output. 
+It will create folder 'graphs' for output.
 
-There are numerous Dash and Plotly resources on the Internet:
-https://dash.plot.ly/integrating-dash
-https://plot.ly/python/reference/
-https://www.datacamp.com/community/tutorials/learn-build-dash-python
-https://github.com/plotly/dash-recipes
-https://github.com/plotly/dash-recipes/blob/master/multiple-hover-data.py
-https://plot.ly/python/subplots/
-https://towardsdatascience.com/creating-an-interactive-data-app-using-plotlys-dash-356428b4699c
-https://dash.plot.ly/dash-core-components/tabs
-https://dash.plot.ly/getting-started-part-2
-https://plot.ly/python/range-slider/
-https://plot.ly/python/click-events/
+This script requires dash, plotly, pandas, numpy, openpyxl and some system
+modules. Create the environment from the environment.yml shipped beside
+this script, which solves on both Linux and Windows:
 
-This script requires openpyxl, PySide2 (PyQt5 is loaded if PySide2 not available), numpy, 
-pandas, plotly, dash, threading, openpyxl and some system modules.
+    conda env create -f environment.yml
+    conda activate dashplot
 
-To install dash when connected to the internet:
-conda config --add channels conda-forge
-conda search dash-daq --channel conda-forge
-conda install dash
-conda install dash-html-components
-conda install dash-core-components
-conda install dash-table
-conda install dash-daq
-
-This package could not be installed with 
-    conda install visdcc
-Conflicts between versions. Installing from the bz2 file worked however.
-
-A recent off-line install required the following packages to be manually installed.
-conda install dash-0.39.0-py_0.tar.bz2
-conda install flask-compress-1.4.0-py_0.tar.bz2
-conda install plotly-4.1.1-py_0.tar.bz2
-conda install dash-html-components-0.14.0-py_0.tar.bz2
-conda install dash-core-components-0.44.0-py_0.tar.bz2
-conda install dash-table-3.6.0-py_0.tar.bz2
-conda install dash-daq-0.1.4-py_0.tar.bz2
-conda install plotly-orca-1.2.1-1.tar.bz2
-conda install retrying-1.3.3-py37_1.tar.bz2
-conda install dash-renderer-0.20.0-py_0.tar.bz2
-conda install visdcc-0.0.40-pyh516909a_0.tar.bz2
-
-Plotly packages seem to be here:  
-https://anaconda.org/plotly  
-https://anaconda.org/plotly/repo  
-There are 17 packages, located under the package name, Files tab:
-https://anaconda.org/plotly/plotly/files  
-or   
-https://anaconda.org/plotly/dash/files 
-
-To use as a module in another application:
-
-1) Import the DashLinePlot and DashPlotWindow classes from the module
-            
-2) In your code implement something like:
-
-    # create new window
-    self.dashWidget = DashPlotWindow(port)
-    self.dashWidget.show()
-
-    # do actual plotting
-    useCallBacks = True
-    plotConfig = './dash-config.xlsx'
-    port = '8050' 
-    dashlineplotter = DashLinePlot()
-    dashlineplotter.runPlotter(port, plotConfig, useCallBacks)
-
-Notes from https://dash.plot.ly/getting-started:
-* The layout is composed of a tree of "components" like html.Div and dcc.Graph.
-* The dash_html_components library has a component for every HTML tag. 
-  Each html.xxx(children='yyy') component generates a <h1>yyy</h1> HTML element in your application.
-* Not all components are pure HTML. The dash_core_components describe higher-level components that 
-  are interactive and are generated with JavaScript, HTML, and CSS through the React.js library.
-* Each component is described entirely through keyword attributes. 
-  Dash is declarative: you will primarily describe your application through these attributes.
-* The children property is special. By convention, it's always the first attribute which means that you can omit it: 
-     html.xxx(children='yyy') is the same as html.xxx('yyy'). 
-  Also, it can contain a string, a number, a single component, or a list of components.
-* The fonts in the application can be set with a custom CSS stylesheet to modify the default styles of the elements. 
-    external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-    app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-
-https://dash.plot.ly/dash-html-components
-The dash layout is composed of a tree of "components" like html.Div and dcc.Graph.
-The dash_html_components library contains a component class for every HTML tag as well as keyword arguments 
-for all of the HTML arguments.
-
-https://dash.plot.ly/dash-core-components
-The dash_core_components includes a set of higher-level components like dropdowns, graphs, markdown blocks, and more.
-Graph renders interactive data visualizations using the open source plotly.js JavaScript graphing library. 
-Plotly.js supports over 35 chart types and renders charts in both vector-quality SVG and high-performance WebGL.
-The figure argument in the dash_core_components.Graph component is the same figure argument that is used by plotly.py, 
-Plotly's open source Python graphing library. Check out the plotly.py documentation and gallery to learn more.
-
-Notes on callbacks https://dash.plot.ly/getting-started-part-2:
-
-# https://dash.plot.ly/dash-core-components/tabs
-# A Div component is a wrapper for the <div> HTML5 element.
-Div(
-    [
-        # The Tabs component hold a collection of Tab components.
-        Tabs
-        (
-            # children (list of a list of or a singular dash component, string or numbers | a list of or a singular dash component, 
-            # string or number; optional): Array that holds Tab components
-            children=
-            [
-                # The Tab component controls the style and value of the individual tab 
-                # id (string; optional): The ID of this component, used to identify dash components in callbacks. 
-                #                        The ID needs to be unique across all of the components in an app.
-                # label (string; optional): The tab's label
-                # value (string; optional): Value for determining which Tab is currently selected
-                #
-                # Possible properties of Tab# ['children', 'id', 'label', 'value', 'disabled', 'disabled_style', 'disabled_className', 'className', 'selected_className', 'style', 'selected_style', 'loading_state']
-                
-                Tab(id='RelativePosition', label='RelativePosition', value='Tab 0'), 
-                Tab(id='Velocity', label='Velocity', value='Tab 1'), 
-                Tab(id='MissilePosition', label='MissilePosition', value='Tab 2'), 
-                Tab(id='gimbalFromxls', label='gimbalFromxls', value='Tab 3')
-            ], 
-            
-            # id (string; optional): The ID of this component, used to identify dash components in callbacks. 
-            # The ID needs to be unique across all of the components in an app.
-            id='tabs', 
-            
-            # value (string; optional): The value of the currently selected Tab
-            value='Tab 0'
-        ), 
-        
-        # id (string; optional): The ID of this component, used to identify dash components in callbacks. 
-                                 The ID needs to be unique across all of the components in an app.
-        Div(id='tabs-content')
-    ]
-    )
-    
 """
-__version__= '$Revision: 4633 $'
 __author__='CJ & MS Willers'
 
-import sys, os
+import sys
+import json
+
 import threading
 import pandas as pd
 import openpyxl as oxl
 import numpy as np
-import datetime   
-import itertools 
+import datetime
+import itertools
+import base64
+import re
+from pathlib import Path
 
-# PySide2 is preferred based on licensing restrictions of PyQt5
 try:
-    __import__('PySide2')
-    from PySide2 import QtWidgets
-    import PySide2.QtCore as QtCore
-    from PySide2 import QtWebEngineWidgets
+    import dash
+    from dash import dcc
+    from dash import html
+    from dash import Patch
+    from dash.dependencies import Input, Output, State
 except ImportError:
-    try:
-        __import__("PyQt5")
-        from PyQt5 import QtWidgets
-        import PyQt5.QtCore as QtCore
-        from PyQt5 import QtWebEngineWidgets
-    except ImportError:
-        print("This script requires Python 3 with either PySide2 or PyQt5")
-        exit(-1)
-            
-import dash
+    print("""Dash is not installed.  Create or activate the conda environment
+from the environment.yml shipped in the root folder, containing dash-lineplot.py:
+
+    conda env create -f environment.yml
+    conda activate dashplot
+""",
+          file=sys.stderr)
+    sys.exit(1)
 from dash import dcc
 from dash import html
+from dash import Patch
 from dash.dependencies import Input, Output, State
-from plotly import subplots
-import visdcc
 
-external_stylesheets = ['assets/bWLwgP.css']
+import plotly.offline as offline
 
 pd.set_option('display.max_rows', 500)
 
 # https://stackoverflow.com/questions/55596932/how-can-i-include-assets-of-a-dash-app-into-an-exe-file-created-with-pyinstaller
 # when packaging the app with pyInstaller the assets folder is not included correctly
-# defining resource_path as below and using
-#     dash.Dash(__name__, assets_folder=resource_path('assets'))
+# defining resourcePath as below and using
+#     dash.Dash(__name__, assets_folder=resourcePath('assets'))
 # solves the problem 
-def resource_path(relative_path):
+def resourcePath(relative_path):
 
 # get absolute path to resource
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")
+        base_path = Path(__file__).resolve().parent
 
-    return os.path.join(base_path, relative_path)
+    return Path(base_path) / relative_path
+
+# bWLwgP.css needs no explicit external_stylesheets entry: dash.Dash's
+# assets_folder serves everything under assets/ automatically, this file
+# included.
+encoded_image = base64.b64encode(open(resourcePath('icons/logoSet2long.png'), 'rb').read())
 
 ################################################################
-class DashLinePlot():
+# Columns a graph sheet may carry. Any sheet is reindexed onto these so that
+# a column nobody used still exists as NaN: the graph code indexes them by
+# name unconditionally, and a JSON config naturally omits what it does not
+# set. Extra columns beyond this list are preserved.
+CONFIG_COLUMNS = ['Variable', 'Value', 'Format', 'LineLabel', 'GraphType',
+                  'Scale', 'Offset', 'Colour', 'Linewidth', 'Dash', 'Mode',
+                  'MarkerOpacity', 'Categories', 'Datafile']
+
+################################################################
+def splitDataRef(dataref):
+    """
+    Split a data reference into a file name and an optional group name.
+
+    A reference may carry a '#group' fragment naming one group inside a
+    multi-rate JSON file, as in 'out/run.json#gimbal_1ms'. A reference with
+    no fragment means the whole file, which is what every non-JSON format
+    and every single-rate JSON file uses.
+
+    Args:
+        | dataref (string): the Datafile value from the configuration.
+
+    Returns:
+        | filename (string): the file name, fragment removed.
+        | group (string): the group name, or None if no fragment was given.
+
+    """
+    filename, hashmark, group = str(dataref).partition('#')
+    return filename, group if hashmark else None
+
+################################################################
+def readJsonData(path, group):
+    """
+    Read a JSON data file into a DataFrame.
+
+    Two shapes are accepted, and which one a file uses is declared by its
+    own structure rather than inferred from the data:
+
+    A top-level list is a single record array, one object per sample. This
+    is the single-rate form, and a group must not be named.
+
+    A top-level object is a set of named groups, each holding its own record
+    array with its own time column. This is the multi-rate form: each group
+    becomes a separate DataFrame and nothing is merged, resampled or aligned
+    between them. A group must be named, using a '#group' fragment on the
+    Datafile value.
+
+    Args:
+        | path (string): path to the JSON file.
+        | group (string): group name from the reference fragment, or None.
+
+    Returns:
+        | df (DataFrame): the requested data.
+
+    """
+    with open(path, 'r', encoding='utf-8') as fjson:
+        content = json.load(fjson)
+
+    if isinstance(content, list):
+        if group is not None:
+            raise ValueError(
+                f"{path} is a single record array and holds no groups, but "
+                f"the configuration asks for group '{group}'. Drop the "
+                f"'#{group}' fragment from the Datafile value.")
+        return pd.DataFrame.from_records(content)
+
+    if isinstance(content, dict):
+        available = ', '.join(content.keys()) if content else 'none'
+        if group is None:
+            raise ValueError(
+                f"{path} holds named groups, so the configuration must say "
+                f"which one to plot by appending a fragment to the Datafile "
+                f"value, as in '{Path(path).name}#<group>'. "
+                f"Groups present: {available}.")
+        if group not in content:
+            raise ValueError(
+                f"{path} has no group '{group}'. Groups present: {available}.")
+        return pd.DataFrame.from_records(content[group])
+
+    raise ValueError(
+        f'{path} must hold either a list of samples or an object of named '
+        f'groups, but holds {type(content).__name__}.')
+
+################################################################
+def traceYExtent(traces):
+    """
+    Smallest and largest y over the traces of one graph.
+
+    Used only for the placeholder text in the Y range boxes, so a reader can
+    see what range the graph covers without guessing. Missing values are
+    ignored, and a graph with nothing numeric on it yields (None, None).
+
+    Args:
+        | traces (list): the trace dicts of one graph.
+
+    Returns:
+        | (tuple): (ymin, ymax), either of which may be None.
+
+    """
+    lo, hi = None, None
+    for trace in traces:
+        values = np.asarray([np.nan if v is None else v for v in trace['y']],
+                            dtype=float)
+        if values.size == 0 or np.all(pd.isna(values)):
+            continue
+        low, high = float(np.nanmin(values)), float(np.nanmax(values))
+        lo = low if lo is None else min(lo, low)
+        hi = high if hi is None else max(hi, high)
+    return lo, hi
+
+################################################################
+def cellFloat(value, default):
+    """A numeric cell, or the default when blank or not a number."""
+    if pd.isna(value) or str(value).strip() == '':
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+################################################################
+def cellText(value, default=''):
+    """A text cell, or the default when blank."""
+    if pd.isna(value):
+        return default
+    
+    # Clean up whitespace padding
+    text_val = str(value).strip()
+    return text_val if text_val != '' else default
+
+################################################################
+def cellFlag(value, default):
+    """A boolean cell: TRUE/FALSE, 1/0, yes/no, or blank for the default."""
+    if pd.isna(value) or str(value).strip() == '':
+        return default
+    
+    # Normalize to string for comparison
+    normalized = str(value).strip().lower()
+    
+    if normalized in ('true', '1', 'yes', 'y', 't'):
+        return True
+    if normalized in ('false', '0', 'no', 'n', 'f'):
+        return False
+        
+    return default
+
+################################################################
+def resolveSetContexts(dft):
+    """
+    The settings in force for each graph on a sheet.
+
+    A sheet is read top to bottom as a sequence of blocks. A Height row opens
+    a block, and a Datafile, xValue or xLabel row applies to every graph below
+    it until another row of the same kind replaces it. Each Title captures
+    whatever is in force at that point, so one tab can carry several data
+    files, each with its own time column.
+
+    A sheet with one block behaves exactly as it did before blocks existed:
+    its single Datafile and xValue apply to every graph on it.
+
+    Args:
+        | dft (DataFrame): the rows of one graph sheet, in sheet order.
+
+    Returns:
+        | contexts (dict): set number as '000', '001', ... to a dict of
+          datafile, xvalue, xlabel, xformat, xscale, xoffset and height.
+
+    """
+    # Define the baseline state
+    current = {
+        'datafile': None, 'xvalue': None, 'xlabel': '', 
+        'xformat': '.4f', 'xscale': 1.0, 'xoffset': 0.0, 'height': 300
+    }
+    contexts = {}
+    setNumber = -1
+
+    # Map variables to their data extraction rules
+    # Format: 'Variable': lambda row, curr: { key_to_update: clean_value, ... }
+    variable_handlers = {
+        'Height': lambda r, c: {
+            'height': cellFloat(r['Value'], c['height'])
+        },
+        'Datafile': lambda r, c: {
+            'datafile': cellText(r['Value'], c['datafile'])
+        },
+        'xLabel': lambda r, c: {
+            'xlabel': cellText(r['Value'], c['xlabel']),
+            'xformat': cellText(r['Format'], '.4f') if cellText(r['Format']) else '.4f'
+        },
+        'xValue': lambda r, c: {
+            'xvalue': cellText(r['Value'], c['xvalue']),
+            'xscale': cellFloat(r['Scale'], 1.0),
+            'xoffset': cellFloat(r['Offset'], 0.0)
+        }
+    }
+
+    # Iterate and apply updates dynamically
+    for _, row in dft.iterrows():
+        variable = row['Variable']
+        
+        if variable in variable_handlers:
+            # Execute the handler and merge the resulting dict into 'current'
+            updates = variable_handlers[variable](row, current)
+            current.update(updates)
+            
+        elif variable == 'Title':
+            setNumber += 1
+            contexts[f'{setNumber:03d}'] = dict(current)
+
+    return contexts
+
+################################################################
+def selectionBounds(selectedData):
+    """
+    The x and y extent of a Plotly selection, whichever tool made it.
+
+    Box Select reports a 'range'; Lasso Select reports the polygon it drew
+    as 'lassoPoints' and no 'range' at all, so handling only the first makes
+    the lasso appear silently broken. A lasso is reduced to the bounding box
+    of its polygon.
+
+    Args:
+        | selectedData (dict): the selectedData property of a Graph.
+
+    Returns:
+        | bounds (tuple): (xRange, yRange), each a two-element list, or None
+          if nothing was selected.
+
+    """
+    if not selectedData:
+        return None
+
+    if 'range' in selectedData:
+        # for divs where we work with subplots, the number of the subplot is
+        # added to the x and y key, so take the keys programmatically
+        ranges = selectedData['range']
+        keys = list(ranges)
+        if len(keys) < 2:
+            return None
+        return ranges[keys[0]], ranges[keys[1]]
+
+    if 'lassoPoints' in selectedData:
+        lasso = selectedData['lassoPoints']
+        keys = list(lasso)
+        if len(keys) < 2:
+            return None
+        xs, ys = lasso[keys[0]], lasso[keys[1]]
+        if not xs or not ys:
+            return None
+        return [min(xs), max(xs)], [min(ys), max(ys)]
+
+    return None
+
+################################################################
+def nearestSample(xs, x):
+    """
+    Index of the sample nearest x, or None for an empty series.
+
+    Used to read a graph at an x that was clicked on a different graph. The
+    nearest recorded sample is reported rather than an interpolated value,
+    because graphs sharing an x axis need not share a sample rate.
+
+    Args:
+        | xs (Series or list): the x values of one trace.
+        | x (float): the x value to look up.
+
+    Returns:
+        | index (int): index of the nearest sample, or None.
+
+    """
+    values = np.asarray(xs, dtype=float)
+    if values.size == 0:
+        return None
+    return int(np.abs(values - x).argmin())
+
+################################################################
+def isEnumSeries(series):
+    """
+    True if this column holds enumeration labels rather than numbers.
+
+    Booleans count as numeric: they already plot as 0 and 1. Anything else
+    that is not numeric is treated as an enumeration, which is the only way
+    a column of state or mode names can be drawn at all.
+
+    Args:
+        | series (Series): the data column.
+
+    Returns:
+        | (bool): True for an enumeration column.
+
+    """
+    return not (pd.api.types.is_numeric_dtype(series) or
+                pd.api.types.is_bool_dtype(series))
+
+################################################################
+def parseCategories(value):
+    """
+    Read a declared category order from a configuration cell.
+
+    Accepts a JSON list, or a comma-separated string as typed into a
+    spreadsheet cell. Returns None when nothing was declared, in which case
+    the order is taken from the data.
+
+    Args:
+        | value: the Categories cell value.
+
+    Returns:
+        | categories (list): ordered category names, or None.
+
+    """
+    if isinstance(value, (list, tuple)):
+        return [str(v) for v in value]
+    if isinstance(value, str) and value.strip():
+        return [s.strip() for s in value.split(',') if s.strip()]
+    return None
+
+################################################################
+def enumCategories(series, declared=None):
+    """
+    Ordered list of the categories in an enumeration column.
+
+    A declared order is used verbatim, so an axis can be held identical
+    across runs even when a run does not exercise every state. Otherwise
+    the order is order of first appearance in the data, so a mode sequence
+    reads up the axis in the order it happened.
+
+    Values present in the data but absent from a declared list are appended
+    at the end rather than dropped, because silently discarding a state
+    would hide exactly the event worth seeing.
+
+    Args:
+        | series (Series): the enumeration column.
+        | declared (list): category order from the configuration, or None.
+
+    Returns:
+        | categories (list): ordered category names.
+
+    """
+    categories = list(declared) if declared else []
+    for value in series:
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            continue
+        name = str(value)
+        if name not in categories:
+            categories.append(name)
+    return categories
+
+################################################################
+def isJsonConfig(configfile):
+    """
+    True if this configuration file is JSON rather than an Excel workbook.
+
+    Args:
+        | configfile (string): configuration filename.
+
+    Returns:
+        | (bool): True for a .json configuration.
+
+    """
+    return Path(configfile).suffix.lower() == '.json'
+
+################################################################
+def readConfigTables(configfile):
+    """
+    Read a configuration from .xlsx or .json into a common table form.
+
+    The JSON schema mirrors the workbook one for one: a 'header' object of
+    Variable/Value pairs, and a 'sheets' object mapping each graph sheet
+    name to the list of row objects that sheet held. Field names are the
+    workbook's column names verbatim, so a workbook and its converted JSON
+    describe the same plot in the same words.
+
+    Args:
+        | configfile (string): configuration filename, .xlsx or .json.
+
+    Returns:
+        | dfHeader (DataFrame): the header table, columns Variable and Value.
+        | sheets (dict): sheet name to DataFrame, in file order.
+
+    """
+    def onCanonicalColumns(df):
+        extras = [c for c in df.columns if c not in CONFIG_COLUMNS]
+        return df.reindex(columns=CONFIG_COLUMNS + extras)
+
+    if isJsonConfig(configfile):
+        with open(configfile, 'r', encoding='utf-8') as fjson:
+            cfg = json.load(fjson)
+        missing = [key for key in ('header', 'sheets') if key not in cfg]
+        if missing:
+            raise ValueError(
+                f"{configfile} is missing top-level "
+                f"{'key' if len(missing) == 1 else 'keys'} "
+                f"{', '.join(repr(m) for m in missing)}. A JSON "
+                f"configuration needs both a 'header' object and a "
+                f"'sheets' object; see docs/userguide.md for the shape.")
+        dfHeader = pd.DataFrame([{'Variable': k, 'Value': v}
+                                 for k, v in cfg['header'].items()])
+        sheets = {name: onCanonicalColumns(pd.DataFrame(rows))
+                  for name, rows in cfg['sheets'].items() if 'graph' in name}
+        return dfHeader, sheets
+
+    cxls = pd.ExcelFile(configfile)
+    dfHeader = pd.read_excel(cxls, 'header')
+    # openpyxl rather than pd.ExcelFile.sheet_names, to keep the workbook's
+    # own sheet order
+    cwb = oxl.load_workbook(configfile)
+    sheets = {sn: onCanonicalColumns(pd.read_excel(cxls, sn))
+              for sn in cwb.sheetnames if 'graph' in sn}
+    return dfHeader, sheets
+
+################################################################
+def readPageTitle(configfile):
+    """
+    Read the page title from the configuration file's header.
+
+    Used as the browser tab title. Before the Qt shell was removed this was
+    the native window's title.
+
+    Args:
+        | configfile (string): configuration filename.
+
+    Returns:
+        | pagetitle (string): the configured title, or a default.
+
+    """
+    default = 'Dash flask server for plotting'
+    dfHeader, _ = readConfigTables(configfile)
+    dfHeader = dfHeader.set_index('Variable')
+    if 'Pagetitle' in dfHeader.index:
+        return str(dfHeader.loc['Pagetitle', 'Value'])
+    return default
+
+################################################################
+class DashLinePlot:
 
     def __init__(self):
         """
@@ -252,18 +568,170 @@ class DashLinePlot():
         # storage for last 2 clicked point all graphs
         self.clickedData = {}
 
+        # traces per graph id, so a click on one graph of a commonX group can
+        # report the values of every graph in that group at the clicked x
+        self.graphTraces = {}
+
+        # graph id to the list of graph ids sharing its x axis, for tabs that
+        # set commonX. Graphs on other tabs do not appear here at all.
+        self.commonXGroups = {}
+
+        # last two clicked x values per graph, for the commonX readout
+        self.clickedX = {}
+
+        # (xscale, xoffset) in force for each graph, so a selection box's
+        # raw edges -- which are plot positions, not recorded samples, and
+        # so carry no customdata of their own -- can be converted back to
+        # the values the data file actually held
+        self.graphXAxis = {}
+
     ##########################################
-    def generateFeedbackBoxes(self, id, isMarkers):
+    def commonClickMessage(self, grID, xClicked):
         """
-        Builds the div with the click and rectangle tool feedback boxes
+        Readout for one graph of a commonX group, at the clicked x.
+
+        Every graph of the group reports at the same x, whichever graph was
+        actually clicked, so one click reads the whole tab. The value quoted
+        for each line is its nearest recorded sample, never an interpolation:
+        graphs in a group may sample at different rates, and inventing a
+        value between two samples would be a fiction.
+
+        xClicked is the plot position of the click -- scaled and offset the
+        same way the trace was drawn -- and is what nearestSample matches
+        against, since that is the space the trace's own x lives in. Every
+        value actually shown to the reader is the true, recorded one:
+        xClicked is converted back through this graph's (xscale, xoffset)
+        before display, and each trace's y is read from its customdata, not
+        its plotted y, since Scale/Offset on a yValue row are a display
+        convenience and must never appear in a value the reader reads off.
 
         Args:
-            | id (string): id string.
+            | grID (string): the graph this readout belongs to.
+            | xClicked (float): x value of the click, on any graph of the group.
 
+        Returns:
+            | msg (string): the text for this graph's Click Data box.
+
+        """
+        xscale, xoffset = self.graphXAxis.get(grID, (1.0, 0.0))
+        trueX = (xClicked - xoffset) / xscale if xscale else xClicked
+
+        history = self.clickedX.setdefault(grID, [])
+        history.append(trueX)
+        del history[:-2]
+
+        lines = []
+        if len(history) == 2:
+            lines.append(f'Previous x: {history[0]:.6f}')
+        lines.append(f'Current  x: {trueX:.6f}')
+        if len(history) == 2:
+            lines.append(f'Range    x: {abs(history[1] - history[0]):.6f}')
+
+        for name, xs, customdata, texts in self.graphTraces.get(grID, []):
+            index = nearestSample(xs, xClicked)
+            if index is None:
+                continue
+            if texts is not None and index < len(texts):
+                shown = str(texts[index])
+            else:
+                value = customdata[index][1] if customdata is not None else None
+                shown = 'n/a' if value is None or pd.isna(value) else f'{float(value):.6f}'
+            lines.append(f'  {name} = {shown}')
+
+        return '\n'.join(lines)
+
+    ##########################################
+    def commonSelectMessage(self, grID, xRange):
+        """
+        Selection readout for one graph of a commonX group.
+
+        Only the x window is shared. The graphs of a group have their own y
+        scales, and often their own units, so a y range selected on one of
+        them means nothing on another. Each graph therefore reports the
+        extent of its own data inside the shared x window, which is the
+        useful quantity: what this signal did while that one did that.
+
+        xRange is the selection box's edges in plot position -- the same
+        scaled, offset space the traces are drawn in, since that is what a
+        rubber-band selection is measured in. It is converted back through
+        this graph's (xscale, xoffset) for display; the box itself backs no
+        recorded sample, so there is nothing else to convert it from. Each
+        trace's y extent is read from its customdata, not its plotted y,
+        since a yValue row's Scale/Offset are a display convenience and must
+        never appear in a value the reader reads off.
+
+        Args:
+            | grID (string): the graph this readout belongs to.
+            | xRange (list): [x0, x1] of the selection, on any graph of the group.
+
+        Returns:
+            | msg (string): the text for this graph's selection box.
+
+        """
+        xscale, xoffset = self.graphXAxis.get(grID, (1.0, 0.0))
+        def toTrueX(value):
+            return (value - xoffset) / xscale if xscale else value
+
+        x0, x1 = min(xRange), max(xRange)
+        trueX0, trueX1 = toTrueX(x0), toTrueX(x1)
+        lines = [f'Selected x: [{trueX0:.6f}, {trueX1:.6f}]',
+                 f'Width    x: {abs(trueX1 - trueX0):.6f}']
+
+        for name, xs, customdata, texts in self.graphTraces.get(grID, []):
+            values = np.asarray(xs, dtype=float)
+            inWindow = (values >= x0) & (values <= x1)
+            count = int(inWindow.sum())
+            if count == 0:
+                lines.append(f'  {name}: no samples in range')
+                continue
+
+            if texts is not None:
+                # an enumeration has no meaningful minimum: report the states
+                # it actually visited inside the window, in order of occurrence
+                seen = []
+                for keep, label in zip(inWindow, texts):
+                    if keep and str(label) not in seen:
+                        seen.append(str(label))
+                lines.append(f'  {name}: {", ".join(seen)}  ({count} samples)')
+                continue
+
+            if customdata is None:
+                lines.append(f'  {name}: no values in range')
+                continue
+            yValues = np.asarray([np.nan if row is None else row[1]
+                                  for row in customdata],
+                                 dtype=float)[inWindow]
+            if np.all(pd.isna(yValues)):
+                lines.append(f'  {name}: no values in range')
+                continue
+            lines.append(f'  {name}: y in [{np.nanmin(yValues):.6f}, '
+                         f'{np.nanmax(yValues):.6f}]  ({count} samples)')
+
+        return '\n'.join(lines)
+
+    ##########################################
+    def generateFeedbackBoxes(self, graphId, isMarkers, xmin=None, xmax=None,
+                              ymin=None, ymax=None):
+        """
+        Builds the column beside a graph: x-range entry and the readout boxes
+
+        The x-range boxes replace the range slider of earlier versions, which
+        depended on the reader clicking the current tab to trigger a redraw
+        and stopped working when that mechanism changed. Typing a start and
+        an end is the capability the slider provided; the slider itself was
+        only ever the means.
+
+        Args:
+            | graphId (string): id string.
+            | isMarkers (bool): whether any line carries markers, which is
+                             what makes a selection possible at all.
+            | xmin (double): smallest x in the data, shown as a placeholder.
+            | xmax (double): largest x in the data, shown as a placeholder.
+            | ymin (double): smallest y on this graph, shown as a placeholder.
+            | ymax (double): largest y on this graph, shown as a placeholder.
 
         Returns:
             | thisDivList (list): list of html Divs.
-
 
         """
 
@@ -277,26 +745,63 @@ class DashLinePlot():
         # https://dash.plot.ly/interactive-graphing
         # https://dash.plot.ly/dash-html-components/pre
 
+        # The boxes sit in a narrow column beside the graph, so they stack
+        # vertically rather than sharing a row of their own.
         clickDiv = html.Div(
                         [
-                            dcc.Markdown(""" **Click Data** """), 
-                            html.Pre(id='click-'+ id, style=boxStyle),
-                        ], 
-                        className='four columns'
+                            dcc.Markdown(""" **Click Data** """),
+                            html.Pre(id='click-'+ graphId, style=boxStyle),
+                        ],
+                        className='feedback-box'
                     )
 
         rectangleDiv =  html.Div(
                             [
                                 dcc.Markdown(""" **Rectangle Tool Selection Data** """),
-                                html.Pre(id='select-'+ id, style=boxStyle),
-                            ], 
-                            className='four columns'
+                                html.Pre(id='select-'+ graphId, style=boxStyle),
+                            ],
+                            className='feedback-box'
                         )
 
+        # Axis range entry: type a start and an end on either axis, Apply to
+        # zoom, Reset to go back to the full data range. One pair of buttons
+        # drives both axes.
+        #
+        # On a commonX tab the x range applies to every graph on the tab,
+        # while the y range applies only to the graph whose boxes were used:
+        # the graphs of a tab have their own y scales and often their own
+        # units, so a y range from one means nothing on another.
+        def bound(value):
+            return '' if value is None else f'{float(value):.6g}'
+
+        xrangeDiv = html.Div(
+                        [
+                            dcc.Markdown(""" **X range** """),
+                            dcc.Input(id='xstart-' + graphId, type='text', inputMode='decimal',
+                                      placeholder=bound(xmin),
+                                      className='xrange-input'),
+                            dcc.Input(id='xend-' + graphId, type='text', inputMode='decimal',
+                                      placeholder=bound(xmax),
+                                      className='xrange-input'),
+                            dcc.Markdown(""" **Y range** """),
+                            dcc.Input(id='ystart-' + graphId, type='text', inputMode='decimal',
+                                      placeholder=bound(ymin),
+                                      className='xrange-input'),
+                            dcc.Input(id='yend-' + graphId, type='text', inputMode='decimal',
+                                      placeholder=bound(ymax),
+                                      className='xrange-input'),
+                            html.Button('Apply', id='xapply-' + graphId,
+                                        className='xrange-button'),
+                            html.Button('Reset', id='xreset-' + graphId,
+                                        className='xrange-button'),
+                        ],
+                        className='feedback-box xrange-box'
+                    )
+
+        boxes = [xrangeDiv, clickDiv]
         if isMarkers:
-            return html.Div(className='row', children=[ clickDiv, rectangleDiv ])
-        else:
-            return html.Div(className='row', children=[ clickDiv ])
+            boxes.append(rectangleDiv)
+        return html.Div(className='feedback-column', children=boxes)
                 
 
     def graphToDisk(self, figdict, fbasename):
@@ -313,22 +818,19 @@ class DashLinePlot():
 
         """
         # Save the figure to disk as html
-        import plotly.offline as offline
         offline.plot(figdict,
             auto_open=False, 
             output_type='file', filename=f'{fbasename}.html', validate=False)
 
 
     ##########################################
-    def makeGraphSet(self, dft, graph, reqStart = 0, reqEnd = 0):
+    def makeGraphSet(self, dft, graph):
         """
         Builds the set of graphs on this tab (requested from one sheet in xls) 
 
         Args:
             | dft (pd.dataframe): info for this graph set.
             | graph (string): graph set name, i.e. text following "graph-" in the sheet name.
-            | reqStart (double): starting x-value, default the beginning.
-            | reqEnd (double): ending x-value, default the end. 
 
         Returns:
             | thisDivList (list): list of html Divs.
@@ -339,7 +841,6 @@ class DashLinePlot():
         """
         #  colors
         backgroundColor = 'aliceblue'
-        gridColour = 'lightgrey'
 
         # get the header info from the header sheet in the config file
         pagetop = dfPlotterHeader.loc['PageTop','Value'] if 'PageTop' in dfPlotterHeader.index else ''
@@ -347,27 +848,20 @@ class DashLinePlot():
         
         # create graphs output folder if not exist
         grDir = './graphs'
-        if not os.path.exists(grDir):
-            os.mkdir(grDir)
-
-        # get subplot bolean from the input
-        # handle all graphs separately (default) or as subplots
-        useSubplots = False
-        if 'UseSubplots' in dft.index:
-            if not np.isnan(dft[(dft['Variable']=='UseSubplots')]['Value'].values[0]):
-                useSubplots = dft[(dft['Variable']=='UseSubplots')]['Value'].values[0]
-
-        # It seems that with the latest python modules, the visdcc module is not compatibl any more
-        # We need to solve this issue
-        # For the time being the subplot functionality will be disabled
-        useSubplots = False  
-        print('\nSubplots functionality disabled\n')   
+        if not Path(grDir).exists():
+            Path(grDir).mkdir()
 
         # graphs to disk requested?
-        toDisk = True
-        if 'ToDisk' in dft.index:
-            if not np.isnan(dft[(dft['Variable']=='ToDisk')]['Value'].values[0]):
-                toDisk = dft[(dft['Variable']=='ToDisk')]['Value'].values[0]
+        to_disk_rows = dft[dft['Variable'] == 'ToDisk']['Value']
+        toDisk = cellFlag(to_disk_rows.values[0], default=False) if not to_disk_rows.empty else True
+
+        # commonX ties every graph on this tab to one x scale: zooming or
+        # panning any of them applies the same range to all, and a click on
+        # any of them reports the values of all at that x.
+        commonX = False
+        if 'commonX' in dft.index:
+            requested = dft[(dft['Variable']=='commonX')]['Value'].values[0]
+            commonX = bool(requested) and str(requested).strip().lower() not in ('false', '0', 'nan', '')
 
         # list of all graph names created here [passed back to calling function]
         # these names are the id of a Graph Div on the page, used in callback functions to update the figure
@@ -376,63 +870,24 @@ class DashLinePlot():
         # list of all the line entries for this graph set
         #  before building the page, all lines are first created and stored here
         graphData = []
-     
-        # get the filename for this graph to get to the data in the dataframe
-        dfilename = dft[(dft['Variable']=='Datafile')]['Value'].values[0]
-        df = self.datafiles[dfilename]
 
-        # ------- x data preparation
+        # Settings in force for each graph, resolved by walking the sheet in
+        # order: a Height row opens a block, and a Datafile, xValue or xLabel
+        # row applies to every graph below it until the next one. A sheet with
+        # a single block behaves exactly as it always did.
+        setContexts = resolveSetContexts(dft)
 
-        # 1) get the name of the x parameter
-        xVarName = dft[dft['Variable']=='xValue']['Value'].values[0]
-
-        # check requested x-range input validity and slice as requested
-        if reqStart < df[xVarName].values[0]:
-            reqStart = df[xVarName].values[0]
-        if reqEnd > df[xVarName].values[-1]:
-            reqEnd = df[xVarName].values[-1]
-        if reqEnd <= reqStart:
-            reqEnd = df[xVarName].values[-1]
-        df = df[(df[xVarName] >= reqStart) & (df[xVarName] <= reqEnd)]
-
-        #  2) get the graph set x hover text format from config
-        hfmt_x = '.4f' 
-        if isinstance(dft[dft['Variable']=='xLabel']['Format'].values[0], str):
-            hfmt_x = dft[dft['Variable']=='xLabel']['Format'].values[0]
-
-        # 3) apply the required scale and offset    
-        if not np.isnan(dft[(dft['Variable']=='xValue')]['Scale'][0]):
-            xscale = float(dft[(dft['Variable']=='xValue')]['Scale'][0])
-        else:
-            xscale = 1.0
-            
-        if not np.isnan(dft[(dft['Variable']=='xValue')]['Offset'][0]):
-            xoffset = float(dft[(dft['Variable']=='xValue')]['Offset'][0])
-        else:
-            xoffset = 0.
-
-        xData = df[xVarName] * xscale + xoffset
-
-        # 4) slider marks dictionary based on set events in the data
-        xmin = xData.min()
-        xmax = xData.max()
-        xsteps = 11
-        sliderMarks={str(t): f'{t:.4f}s' for t in np.linspace(xmin,xmax,xsteps,endpoint=True)}
-
-        # 5) step size of the x-axis slider
-        xSliderStep = np.nan
-        if 'xSliderStep' in dft['Variable']:
-            xSliderStep =  dft[dft['Variable']=='xSliderStep']['Value'].values[0]           
-        if np.isnan(xSliderStep):
-            xSliderStep = round((xmax - xmin) / len(xData), 3)  
-
-        #  6) all graphs on one page or tab have the same x label 
-        xLabel = dft.loc['xLabel','Value']
+        # widest x range over every graph on the tab, for the x-range boxes
+        xmin, xmax = None, None
 
         # ------- y data preparation
 
-        # list of yValue values from config, i.e. the name of each variable to plot 
+        # list of yValue values from config, i.e. the name of each variable to plot
         yVariableList = []
+
+        # category labels per trace, aligned with yVariableList: a list of
+        # names for an enumeration column, None for a numeric one
+        enumCatsList = []
 
         # build the traces for all required variables in this graph set
         for index, row in dft[(dft['Variable']=='yValue')].iterrows():
@@ -441,43 +896,121 @@ class DashLinePlot():
             yVariableList.append(index)
 
             # y scale
-            if 'Scale' in row:
-                if not np.isnan(row['Scale']):
-                    yscale = row['Scale']
-                else:
-                    yscale = 1.0
+            yscale = cellFloat(row.get('Scale'), 1.0)
 
             # y offset
-            if 'Offset' in row:
-                if not np.isnan(row['Offset']):
-                    yoffset = row['Offset']
-                else:
-                    yoffset = 0.
+            yoffset = cellFloat(row.get('Offset'), 0.0)
                     
             # each line in each graph must be a dict as follows:
-            plotMode = 'lines'
-            if 'Mode' in row:
-                #  a sting and not empty
-                if isinstance(row['Mode'], str) and not row['Mode'] == "":
-                    plotMode = row['Mode']
+            plotMode = cellText(row.get('Mode'), 'lines') if 'Mode' in row else 'lines'
 
-            opacity = 0
-            if 'MarkerOpacity' in row:
-                if not np.isnan(row['MarkerOpacity']):
-                    opacity = row['MarkerOpacity']
-                    
-            markerDict = { 'opacity': opacity }
+            # marker opacity and dictionary
+            opacity = cellFloat(row.get('MarkerOpacity'), 0.0)
+            markerDict = {
+                'opacity': opacity
+            }
+
+            # An enumeration column holds state names and cannot be plotted as
+            # a number. Map it onto integer codes and keep the labels, so the
+            # axis can be relabelled with the names further down. Scale and
+            # Offset are deliberately not applied to an enumeration: they have
+            # no meaning for a state name.
+            # Each trace resolves its x and y against the data file its own
+            # block named, and a Datafile cell on this very row overrides even
+            # that. Nothing is aligned or resampled between files: a tab may
+            # carry signals recorded at different rates, and each is drawn at
+            # the rate it was recorded.
+            setStr = str(index).split('#')[1].split('-')[0]
+            ctx = setContexts[setStr]
+
+            dataref = ctx['datafile']
+            if isinstance(row['Datafile'], str) and row['Datafile'].strip():
+                dataref = row['Datafile'].strip()
+
+            # A missing or misspelled Datafile reaches here as None or as a
+            # string nothing was loaded under, and a raw dict lookup would
+            # raise an unhelpful KeyError naming only the bad key. Name the
+            # sheet and the row instead, and list what was actually loaded,
+            # so a typo is a one-line fix rather than a stack trace to read.
+            if dataref not in self.datafiles:
+                available = ', '.join(sorted(self.datafiles)) or 'none'
+                reason = 'no Datafile is set' if dataref is None else f'{dataref!r} was not loaded'
+                raise ValueError(
+                    f"Sheet '{graph}': the yValue row for '{row['Value']}' "
+                    f"needs a data file, but {reason}. Set a Datafile on "
+                    f"this sheet, on the block above this row, or in this "
+                    f"row's own Datafile column. Data files loaded: {available}.")
+
+            traceDf = self.datafiles[dataref]
+
+            if ctx['xvalue'] not in traceDf.columns:
+                raise ValueError(
+                    f"Sheet '{graph}': xValue '{ctx['xvalue']}' is not a "
+                    f"column of {dataref}. Columns available: "
+                    f"{', '.join(str(c) for c in traceDf.columns)}.")
+
+            if row['Value'] not in traceDf.columns:
+                raise ValueError(
+                    f"Sheet '{graph}': yValue '{row['Value']}' is not a "
+                    f"column of {dataref}. Columns available: "
+                    f"{', '.join(str(c) for c in traceDf.columns)}.")
+
+            rawX = traceDf[ctx['xvalue']]
+            traceX = rawX * ctx['xscale'] + ctx['xoffset']
+
+            xlo, xhi = traceX.min(), traceX.max()
+            xmin = xlo if xmin is None else min(xmin, xlo)
+            xmax = xhi if xmax is None else max(xmax, xhi)
+
+            ySeries = traceDf[row['Value']]
+            traceCategories = None
+
+            if isEnumSeries(ySeries):
+                traceCategories = enumCategories(ySeries,
+                                                 parseCategories(row['Categories']))
+                codeOf = {name: number for number, name in enumerate(traceCategories)}
+                yValues = [codeOf.get(str(value)) for value in ySeries]
+                hoverText = [str(value) for value in ySeries]
+            else:
+                yValues = ySeries * yscale + yoffset
+                hoverText = None
+
+            enumCatsList.append(traceCategories)
 
             dLines = {
-                'x':xData,
-                'y':df[row['Value']] * yscale + yoffset,
+                'x':traceX,
+                'y':yValues,
                 'line':{},
                 'mode': plotMode,
                 'marker': markerDict,   # we do not want markers but need them for the rectangle tool to appear
             }
 
+            # Scale and Offset are a display convenience, so graphs of very
+            # different magnitude can share one axis. They must never leak
+            # into a value the reader reads off: customdata carries the true
+            # x, and for a numeric trace the true y, straight from the data
+            # file, so the hover tooltip and the click/selection readouts
+            # always report what was recorded, never the scaled, shifted
+            # plot position. The hovertemplate for a numeric trace is
+            # completed further down, once the graph's y hoverformat
+            # (hfmt_y) is resolved.
+            if traceCategories is not None:
+                # A state signal is piecewise constant: it holds a value, then
+                # jumps. A sloped line between two states would draw
+                # intermediate states that never existed.
+                dLines['line']['shape'] = 'hv'
+                dLines['text'] = hoverText
+                dLines['customdata'] = np.asarray(rawX, dtype=float)
+                # x is left out: it is already shown on the x axis below the
+                # graph, via the vertical hover line, so repeating it in the
+                # tooltip would be redundant.
+                dLines['hovertemplate'] = '%{text}<extra></extra>'
+            else:
+                dLines['customdata'] = np.column_stack([
+                    np.asarray(rawX, dtype=float), np.asarray(ySeries, dtype=float)])
+
             # fill in non-default values
-            if not np.isnan(row['Linewidth']):
+            if not pd.isna(row['Linewidth']):
                 dLines['line']['width'] = row['Linewidth']
 
             if isinstance(row['Colour'], str):
@@ -513,100 +1046,47 @@ class DashLinePlot():
                 html.Div([dcc.Markdown(id=f'topMarkdown-{graph}',children=dft.loc['GraphTop','Value'])])
             )            
 
-        # 3) Div x-axis slider 
-        #    Disable for now
-        #    With updated python modules the "click tab again" functionaity does not work to trigger an update to the tab
-        #    This must be sorted out
-
-        # instruction = '**Click on current tab to refresh the x-axis slider and the graphs**'
-
-        # setName = graph
-        # thisDivList.append(
-        #     html.Div([
-        #         dcc.Markdown(id='header-xSlider-'+ setName,children=instruction),
-        #         dcc.RangeSlider(
-        #             id='xSlider-'+ setName, min=xData.min(), max=xData.max(),  step=xSliderStep, 
-        #             value=[xData.min(), xData.max()],  
-        #             marks=sliderMarks, 
-        #             allowCross=False,
-        #             tooltip={'always_visible': False, 'placement': 'bottom'},  # use either the tooltip or the text display in next div
-        #             # updatemode='drag',   # default is mouseup
-        #             className='margin150'
-        #         ),
-        #         html.Div(
-        #             style={'marginTop':40, 'fontSize':12},
-        #             id='output-container-xSlider-'+ setName,
-        #             className='margin150'
-        #         ),
-        #         dcc.Input(id='minVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type start value', className='margin150-2', style={'fontSize':12}),
-        #         dcc.Input(id='maxVal-'+ setName, type='number', min=0, step=xSliderStep, placeholder='type end value', className='margin2', style={'fontSize':12}),
-        #         html.Button(id='submit-button-'+ setName, type='submit', children='Submit', className='margin2'),
-        #         html.Button('Reset slider', id='resetSlider-'+ setName, className='margin2'),
-        #     ])
-        # )
-
         # 4) Graph and data feedback Divs
 
         # title rows
         titleRows = dft[(dft['Variable']=='Title')]
 
-        #  graph titles
-        grTitles = [row['Value'] for index, row in titleRows.iterrows()]
-
-        # number of graph sets 
-        numGraphSets = len(titleRows.index)
-
-        # subplot environment setup to be done before running through the data collection
-        if useSubplots:
-
-            # for subplots we have only one Graph Div
-            # use the graph set name without any added numbers
-            grList.append(graph)
-
-            # row heights
-            grHeight = dft.loc['Height','Value']
-            rowHeights = [grHeight] * numGraphSets
-
-            # generate the subplot figure
-            figdict = subplots.make_subplots(rows=numGraphSets, cols=1,
-                                        shared_xaxes=True, shared_yaxes=False,
-                                        vertical_spacing=0.075,
-                                        row_heights=rowHeights,
-                                        x_title=xLabel, 
-                                        subplot_titles=grTitles
-                                        )
-            figdict.update_xaxes(hoverformat=hfmt_x, 
-                                gridcolor=gridColour   # default is white
-                                )  
-            figdict.update_layout(hovermode='x', 
-                                    plot_bgcolor=backgroundColor, 
-                                    font=dict(size=10))   # setting the font size of all y-axes labels and legends
-
-
-        # subplot counter used to pack the graph data to the figdict
-        subNum = 0
-
         #  collect the data for the graphs by running through each set
         for index, row in titleRows.iterrows():
-
-            # increase graph set counter, starting from one
-            subNum = subNum + 1
 
             # get the set number as a string
             setStr = str(index).split('#')[1]
 
-            #  current graph title and ylabel for the plot
-            grTitle = row['Value'] 
-            yLabel = dft.loc['yLabel#'+setStr,'Value']
+            # the settings this graph's block put in force
+            ctx = setContexts[setStr]
 
-            #  graph set y hover text format 
-            hfmt_y = '.4f' 
-            if isinstance(dft.loc['yLabel#'+setStr,'Format'], str):
-                hfmt_y = dft.loc['yLabel#'+setStr,'Format']
+            #  current graph title and ylabel for the plot
+            grTitle = row['Value']
+
+            # A Title with no yLabel row under it -- easy to do by deleting
+            # the wrong row, or pasting a Title without its usual neighbour
+            # -- would otherwise raise a bare KeyError naming only the
+            # internal '#000'-style index label.
+            yLabelKey = 'yLabel#' + setStr
+            if yLabelKey not in dft.index:
+                raise ValueError(
+                    f"Sheet '{graph}': Title '{grTitle}' has no yLabel row "
+                    f"under it. Every Title must be followed by a yLabel "
+                    f"row, even one whose Value is left blank.")
+            yLabel = dft.loc[yLabelKey,'Value']
+
+            #  graph set y hover text format
+            hfmt_y = '.4f'
+            if isinstance(dft.loc[yLabelKey,'Format'], str):
+                hfmt_y = dft.loc[yLabelKey,'Format']
 
             #  determine if the rectangle tool is present
-            #  this will be the case if in any line is using markers 
+            #  this will be the case if in any line is using markers
             isMarkers = False
+
+            #  category labels contributed by every enumeration trace in this
+            #  set, in order, so one axis can carry several state signals
+            setCategories = []
 
             # pack the graph data in
             #  * either a list to be used in the Graph Div
@@ -618,87 +1098,142 @@ class DashLinePlot():
                 # identity the specific trace
                 if 'yValue#'+setStr in value:
 
-                    # add to plot set    
-                    if useSubplots:
-                        figdict.append_trace(graphData[traceNum], subNum, 1) 
-                        figdict.update_yaxes(
-                            hoverformat=hfmt_y, 
-                            title=yLabel, 
-                            gridcolor=gridColour,
-                            row = subNum, col = 1) 
-                    else:                 
-                        thisGraphData.append(graphData[traceNum])
-                        
+                    # add to plot set
+                    thisGraphData.append(graphData[traceNum])
+
+                    # a numeric trace's hovertemplate could not be finished
+                    # where the trace was built, because the y hoverformat
+                    # (hfmt_y) belongs to the graph, not the trace: it comes
+                    # from this set's yLabel row. An enum trace already has
+                    # its own hovertemplate and is left alone. x is left out
+                    # of the tooltip: it is already shown on the x axis
+                    # below the graph, via the vertical hover line.
+                    if 'hovertemplate' not in graphData[traceNum]:
+                        traceName = graphData[traceNum].get('name', '')
+                        graphData[traceNum]['hovertemplate'] = (
+                            f'{traceName}=%{{customdata[1]:{hfmt_y}}}<extra></extra>')
+
                     # check for usage of markers
                     # at least one trace with markers will trigger the rectangle tool
                     # with associated Rectangle Tool Selection Data box
                     if 'markers' in graphData[traceNum]['mode']:
                         isMarkers = True
 
-            # Not using subplots we create a Graph Div for each set 
-            if not useSubplots:
+                    # collect the category labels of any enumeration trace
+                    for category in enumCatsList[traceNum] or []:
+                        if category not in setCategories:
+                            setCategories.append(category)
 
-                # create dictionary with the layout and data 
-                figdict = {'layout':{'title': grTitle,
-                                    'xaxis':{'title': xLabel, 'hoverformat': hfmt_x},
-                                    'yaxis':{'title': yLabel, 'hoverformat': hfmt_y},	
-                                    'clickmode': 'event+select',
-                                    'hovermode': 'x',           # set compare data on hover
-                                    'plot_bgcolor': backgroundColor, 
-                                    },
-                            'data':thisGraphData}
-           
-                #  store the id of this set - to be used in callback function generation
-                #  we mark all relevant Divs with this string
-                grID = graph+setStr
-                grList.append(grID)
 
-                # Div with dcc.Graph using the figdict
-                thisDivList.append(
-                    html.Div
-                    (
-                        [
-                            dcc.Graph
-                            (
-                                id=grID,
-                                figure=figdict,
-                                style={'height': str(dft.loc['Height','Value']),'padding':20},
-                            )
-                        ]
-                    )
-                )
+            # y axis: an enumeration set gets its codes relabelled with the
+            # state names, so the reader sees 'Tracking' and not 1
+            # Plotly.js 4 requires an axis title as {'text': ...}: a bare
+            # string is accepted without error but renders as nothing at
+            # all, which is why the axis labels went missing.
+            yAxisDict = {'title': {'text': yLabel}, 'hoverformat': hfmt_y}
+            if setCategories:
+                yAxisDict['tickmode'] = 'array'
+                yAxisDict['tickvals'] = list(range(len(setCategories)))
+                yAxisDict['ticktext'] = setCategories
+                yAxisDict['range'] = [-0.5, len(setCategories) - 0.5]
 
-                # Divs for click data and rectangle tool data feedback
-                thisDivList.append(self.generateFeedbackBoxes(grID, isMarkers))
-                
-                if toDisk:
-                    self.graphToDisk(figdict, f'{grDir}/{graph}#{setStr}')
+            # The legend defaults to a column outside the plot, on the
+            # right, sized to fit its longest entry. Since that width
+            # varies line by line, stacked graphs with different legend
+            # text end up with different plot-area widths, and their x axes
+            # -- the same time values -- no longer line up at the right
+            # edge. Anchoring the legend inside the top-right corner of the
+            # plot area instead means every graph's plot area is exactly
+            # the margin-defined width, so the x axes of stacked graphs
+            # align regardless of what their legends say.
+            legendDict = {
+                'x': 1, 'y': 1, 'xanchor': 'right', 'yanchor': 'top',
+                'bgcolor': 'rgba(255, 255, 255, 0.6)',
+                'bordercolor': 'rgba(0, 0, 0, 0.15)', 'borderwidth': 1,
+            }
 
-        # only one Graph Div if all graphs are in subplots
-        if useSubplots:
+            # create dictionary with the layout and data
+            figdict = {'layout':{'title': grTitle,
+                                'xaxis':{'title': {'text': ctx['xlabel']}, 'hoverformat': ctx['xformat']},
+                                'yaxis':yAxisDict,
+                                'legend': legendDict,
+                                'clickmode': 'event+select',
+                                'hovermode': 'x',           # set compare data on hover
+                                'plot_bgcolor': backgroundColor,
+                                },
+                        'data':thisGraphData}
 
-            figdict.update_layout(height=numGraphSets*grHeight)  
+            # Plotly's default margins reserve about 100 px above and 80 px
+            # below the plot area. On a short graph that leaves a thin strip
+            # of data between two bands of white, so the compact layout
+            # claims that space back: just enough for the title and the
+            # axis labels.
+            # The title is drawn inside the plotting area rather than in a
+            # band above it: 'paper' places it against the top of the axes,
+            # so it costs no page height at all.
+            if pageDensity == 'compact':
+                figdict['layout']['margin'] = {'l': 60, 'r': 20,
+                                               't': 8, 'b': 38}
+                figdict['layout']['title'] = {'text': grTitle,
+                                              'font': {'size': 13},
+                                              'xref': 'paper', 'yref': 'paper',
+                                              'x': 0.01, 'xanchor': 'left',
+                                              'y': 1.0, 'yanchor': 'top',
+                                              'pad': {'t': 4, 'l': 4}}
+       
+            #  store the id of this set - to be used in callback function generation
+            #  we mark all relevant Divs with this string
+            grID = graph+setStr
+            grList.append(grID)
 
-            # Div with dcc.Graph using the figdict
+            # One row per graph: the graph on the left, its click and
+            # selection readouts stacked in a narrow column on the right.
+            # Keeping them side by side is what lets successive graphs sit
+            # almost touching, since the readouts no longer consume a band
+            # of page width-wise between one graph and the next.
+            # Height needs a CSS unit. It used to be emitted as a bare
+            # string, e.g. '240', which is not valid CSS: the browser
+            # dropped it and every graph silently fell back to Plotly's
+            # 450 px default, whatever the configuration asked for.
+            graphStyle = {'padding': 0 if pageDensity == 'compact' else 20}
+            try:
+                graphStyle['height'] = f"{int(float(ctx['height']))}px"
+            except (TypeError, ValueError):
+                pass
+
+            # the common-x class is what assets/graphsync.js keys on to
+            # decide which graphs share an x range
+            rowClass = 'row graph-row common-x' if commonX else 'row graph-row'
+
+            # keep the traces so a click on any graph of a commonX group can
+            # report every graph's values at that x. customdata, not 'y',
+            # is what carries the true value: 'y' is the scaled, offset
+            # position the trace is drawn at.
+            self.graphTraces[grID] = [
+                (trace.get('name', ''), trace['x'], trace.get('customdata'),
+                 trace.get('text'))
+                for trace in thisGraphData]
+            self.graphXAxis[grID] = (ctx['xscale'], ctx['xoffset'])
+
             thisDivList.append(
-                html.Div
-                (
-                    [
+                html.Div(className=rowClass, children=[
+                    html.Div(className='nine columns', children=[
                         dcc.Graph
                         (
-                            id=graph, 
+                            id=grID,
                             figure=figdict,
-                        ),
-                        visdcc.Run_js(id='hover-js')  # need this to get the hover data on all lines of all subplots simultaneously
-                    ]
-                )
+                            style=graphStyle,
+                        )
+                    ]),
+                    html.Div(className='three columns', children=[
+                        self.generateFeedbackBoxes(grID, isMarkers, xmin, xmax,
+                                                   *traceYExtent(thisGraphData))
+                    ]),
+                ])
             )
 
-            # Divs for click data and rectangle tool data feedback          
-            thisDivList.append(self.generateFeedbackBoxes(graph, isMarkers))
-
             if toDisk:
-                self.graphToDisk(figdict, f'{grDir}/{graph}')
+                self.graphToDisk(figdict, f'{grDir}/{graph}#{setStr}')
 
         # 5) Div bottom text: if supplied, append the sheet bottom text
         if 'GraphBottom' in dft.index:
@@ -712,18 +1247,21 @@ class DashLinePlot():
         ) 
 
         # 7) Div with license logos
-        import base64
-        encoded_image = base64.b64encode(open('icons/logoSet2long.png', 'rb').read())
         thisDivList.append(
             html.Div([
-                        html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()),
+                        html.Img(src=f'data:image/png;base64,{encoded_image.decode()}',
                         height=50)
                     ], 
                     style = {'text-align':'right'}
                     )
         )
 
-        return thisDivList, grList, xData.min(), xData.max()
+        # every graph of a commonX tab knows the whole group it belongs to
+        if commonX:
+            for grID in grList:
+                self.commonXGroups[grID] = list(grList)
+
+        return thisDivList, grList, xmin, xmax
 
     ##########################################
     def prepareGraphs(self):
@@ -741,8 +1279,6 @@ class DashLinePlot():
         global divSets
         global graphTabs
         global graphList
-        global sliderMinValues
-        global sliderMaxValues
 
         # divSets to be used when constructing the page
         # each entry in this list is a different tab containing several graphs
@@ -754,52 +1290,25 @@ class DashLinePlot():
         #  List of all the unique graph names for which we need to register callback functions
         graphList = []
 
-        # slider limits
-        sliderMinValues = []
-        sliderMaxValues = []
-        
-        # make a list of all possible graph tabs and graphs sets in dataframe dfg
-        # to be used in generating all possible callbacks
-        global allTabs, allTabUsedIdx
+        # every sheet whose name carries 'graph-', i.e. every candidate tab
         allTabs = dfPlotterConfig['Graph'].unique()
-        allTabUsedIdx = [-1] * len(allTabs)
-
-        global allGraphs
-        allGraphs = []
-
-        # counter for active tabs
-        tabIndex = 0
 
         # for each graph tab in the input data, i.e. each sheet starting with 'graph-'
-        for i, graphTab in enumerate(allTabs):
+        for graphTab in allTabs:
 
             # extract info for this graph set
-            dft = dfPlotterConfig[(dfPlotterConfig['Graph']==graphTab)]        
-            
-            # extract all graph names for this tab    
-            titleRows = dft[(dft['Variable']=='Title')]
-            for index, row in titleRows.iterrows():
-                setStr = str(index).split('#')[1]
-                grID = graphTab+setStr
-                allGraphs.append(grID)
-            
+            dft = dfPlotterConfig[(dfPlotterConfig['Graph']==graphTab)]
+
             # First check exclude flag
-            toInclude = True
-            if 'Include' in dft.index:
-                if not np.isnan(dft[(dft['Variable']=='Include')]['Value'].values[0]):
-                    toInclude = dft[(dft['Variable']=='Include')]['Value'].values[0]
-            
+            to_include_rows = dft[dft['Variable'] == 'Include']['Value']
+            toInclude = cellFlag(to_include_rows.values[0], default=True) if not to_include_rows.empty else True
+
             # collect data and build the data for the sheet
             if toInclude:
-                allTabUsedIdx[i] = tabIndex
-                tabIndex = tabIndex + 1
-
                 divSet, grList, xmin, xmax = self.makeGraphSet(dft, graphTab)
 
                 divSets.append(divSet)
                 graphList.append(grList)
-                sliderMinValues.append(xmin)
-                sliderMaxValues.append(xmax)
                 graphTabs.append(graphTab.split('-')[1])
 
     ##########################################
@@ -845,11 +1354,12 @@ class DashLinePlot():
                     ]))
 
         # create the page to be rendered in the browser, using all active tabs as requested via config
+        # the density class drives the spacing rules in assets/density.css
         page = html.Div(
         [
             dcc.Tabs(
-                id='tabs', 
-                value='Tab 0', 
+                id='tabs',
+                value='Tab 0',
                 children=[
                 # following is a list of all tabs with their content
                 *lsttabs,
@@ -857,7 +1367,8 @@ class DashLinePlot():
             ),
 
             html.Div(id='tabs-content'),
-        ]
+        ],
+        className=f'density-{pageDensity}'
         )
 
         # the page now has for example:
@@ -883,60 +1394,80 @@ class DashLinePlot():
     ##########################################
     def loadConfig(self, configfile):
         """
-        Loads the graph configuration from the excel file
-            
+        Loads the graph configuration from an .xlsx or .json file
+
         Args:
-            | configfile (string): Excel filename for file that defines the plots. 
+            | configfile (string): filename of the file that defines the plots.
 
         Returns:
             | None.
 
         """
 
-        # read the config file
-        cxls = pd.ExcelFile(configfile)
+        # read the config file, whichever of the two formats it is in
+        dfHeader, sheets = readConfigTables(configfile)
 
-        # header dataframe, i.e the data on the 'header' tab in the xlsx file 
+        # header dataframe, i.e the data on the 'header' tab in the xlsx file
         global dfPlotterHeader
-        dfPlotterHeader = pd.read_excel(cxls, 'header')
-        dfPlotterHeader = dfPlotterHeader.set_index('Variable')
-        masterDataFile =  dfPlotterHeader.loc['Datafile','Value']
+        dfPlotterHeader = dfHeader.set_index('Variable')
 
-        # get a list of graph sheetnames (ignore the header sheet)
-        cwb =  oxl.load_workbook(configfile)
-        sheetnames = [sn for sn in cwb.sheetnames if 'graph' in sn]
+        # Extract master datafile, defaulting to empty string if missing
+        masterDataFile = cellText(dfPlotterHeader.loc['Datafile', 'Value'] if 'Datafile' in dfPlotterHeader.index else '')
+ 
+        # page density: 'compact' packs the widgets together, 'comfortable'
+        # restores the original roomier spacing. Compact is the default.
+        global pageDensity
+        pageDensity = 'compact'
+        if 'Density' in dfPlotterHeader.index:
+            requested = cellText(dfPlotterHeader.loc['Density', 'Value']).lower()
+            if requested in ('compact', 'comfortable'):
+                pageDensity = requested
+            else:
+                print(f"Density '{requested}' not recognised, using 'compact'. "
+                      f"Valid values are 'compact' and 'comfortable'.")
 
         # dataframe to contain ALL the sheets' info
         global dfPlotterConfig
         dfPlotterConfig = pd.DataFrame()
 
-        for shtnum,sheetname in enumerate(sheetnames):
-            dft = pd.read_excel(cxls, sheetname)
+        for shtnum,(sheetname,dft) in enumerate(sheets.items()):
+            dft = dft.copy()
+
             # add info to identify the lines associated with this sheet
             dft['Graph'] = sheetname
             dft['ShtNum'] = shtnum
-            dft['Index'] = dft['Variable']
+            dft['Index'] = dft['Variable'].apply(lambda x: cellText(x))
 
             # Check the file to be used and
             # determine the number of graphs on this tab
             i = 0
             theSet = -1
             for index,row in dft.iterrows():
-                if 'Datafile' in row['Variable']:
-                    if dft.loc[index,'Value'] == 'master':
-                        dft.loc[index,'Value'] = masterDataFile
-                if 'Title' in row['Variable']:
+
+                var_name = cellText(row.get('Variable'))
+                val_raw = row.get('Value') # Keep raw for helper parsing
+
+                # Resolve Master Datafile references globally per sheet
+                if 'Datafile' in var_name and cellText(val_raw) == 'master':
+                    dft.loc[index, 'Value'] = masterDataFile
+
+                # a yValue row may name its own data file in the Datafile
+                # column, which is how one tab carries several sample rates
+                if dft.loc[index,'Datafile'] == 'master':
+                    dft.loc[index,'Datafile'] = masterDataFile
+                if 'Title' in var_name:
                     theSet = theSet + 1
-                    dft.loc[index,'Index'] = f"{row['Variable']}#{theSet:03d}"
-                if 'yLabel' in row['Variable']:
-                    dft.loc[index,'Index'] = f"{row['Variable']}#{theSet:03d}"
+                    dft.loc[index,'Index'] = f"{var_name}#{theSet:03d}"
+                if 'yLabel' in var_name:
+                    dft.loc[index,'Index'] = f"{var_name}#{theSet:03d}"
                     i = 0
-                if 'yValue' in row['Variable']:
-                    dft.loc[index,'Index'] = f"{row['Variable']}#{theSet:03d}-{i:03d}"
+                if 'yValue' in var_name:
+                    dft.loc[index,'Index'] = f"{var_name}#{theSet:03d}-{i:03d}"
                     i = i + 1
 
             # make 'Index' column the index
             dft = dft.set_index('Index')
+
             # append this sheet to the master data frame
             dfPlotterConfig = pd.concat([dfPlotterConfig, dft])
 
@@ -944,20 +1475,12 @@ class DashLinePlot():
     def readdatafile(self, filename):
         """Read a comma or space separated data file into a dataframe.
 
-        OSSIM data files can use comma or space separated data files.
-        These files normally have one comma or one or more space separators. 
-        The header line for space separated files start with a percentage to allow
-        loading of the file with Matlab. There might be a space between the % en the 
-        name of the first column, e.g. '%time' or '% time'. Using pandas.read_csv() 
-        will not work if a space is present between the % and the column name.
+        Data files can be comma, tab or space separated.
+        The header line can also start with a percentage to allow Matlab loading.
+        There might be a space between the % and the first column name.
+        This function firstly cleans up the header line, counts the metadata comment lines
+        and then loads the data.
 
-        This function tries to read the different styles of files into a 
-        Pandas dataframe, removing the percentage and any spaces before the first column 
-        heading (rest as in data file).
-            
-        The number of header lines may vary, discard all lines that starts with %
-        using the last as header.
-            
         Args:
             | filename (string): csv filename. 
 
@@ -965,154 +1488,130 @@ class DashLinePlot():
             | dfData (pandas.DataFrame): dataframe with loaded data.
         
         """
-        # empty dataframe
-        dfData = None
-            
-        # determine if there are lines to skip before header line
-        skiprows = 0
-        headerDone = False
-        with open(filename,'r') as fin:
-            while not headerDone:
-                line=fin.readline()
-                if '%' in line:
-                    skiprows = skiprows + 1
+        header_line = None
+        skip_count = 0
+
+        # Scan the file to find the header and count total metadata lines
+        with open(filename, "r") as file:
+            for line in file:
+                if line.strip().startswith("%"):
+                    skip_count += 1
+                    # Assuming the VERY FIRST line is your header
+                    if header_line is None:
+                        header_line = line
                 else:
-                    headerDone = True
-                    
-        # leave the last line as header  
-        skiprows = skiprows - 1
-    
-        # identify the file type
-        with open(filename,'r') as fin:
-            line = fin.readline()
-            if len(line) > 0:
-                matlab = True if '%' in line else False
-                matlabspace = True if ' ' == line[1] else False
-                comma = True if ',' in line else False
-            else:
-                print('File {} has no contents, returning None'.format(filename))
-                return None
-        
-        # load the data if matlab or space separated
+                    break
 
-        if matlab or '.plt' in filename:
-            df = pd.read_csv(filename, sep='\s+',engine='python',header=0,skiprows=skiprows)
-            
-            # the leading '% ' in header messes up the column headings, fix:
-            if matlabspace:
-                dfData = df[df.columns[:-1]]
-                dfData.columns = df.columns[1:]
-            else:
-                dfData = df
+        # no header line with % found, assume first line to be the header
+        if header_line == None:
+            dfData = pd.read_csv(
+                filename, 
+                header = 0,
+                sep=r",|\t|\s+", # Handles mixed separators in the data rows too
+                engine="python"  # Required when using regex separators in pandas
+            )
 
-            if '%Time' in dfData.columns.values[0]:
-                dfData['Time'] = dfData['%Time']
-                dfData.drop(['%Time'], axis=1,inplace=True)
-            if '%CurrentSimTime' in dfData.columns.values[0]:
-                dfData['CurrentSimTime'] = dfData['%CurrentSimTime']
-                dfData.drop(['%CurrentSimTime'], axis=1,inplace=True)
-            if '%t' in dfData.columns:
-                dfData['t'] = dfData['%t']
-                dfData.drop(['%t'], axis=1,inplace=True)
-                
-        # load comma separated data
-        if comma or '.csv' in filename:
-            dfData = pd.read_csv(filename, sep=',',header=0)
-
-        # load spectral data
-        if '.scd' in filename or '.spc' in filename:
-            dfData = pd.read_csv(filename, delimiter='\s+',header=None)
-            if dfData.shape[1] == 3:
-                dfData.columns=['wavelen','wavenum','trans']
-            else:
-                dfData.columns=['wavelen','wavenum','emis','trans','refl']
+        # Load the data rows, skipping all '%' metadata lines, and apply the headers
+        else:
+            # Parse the header column names dynamically (handling spaces, commas, or tabs)
+            header = header_line.strip().removeprefix("%")
+            header = header.lstrip()
+            column_headers = re.split(r",|\t|\s+", header)
+            dfData = pd.read_csv(
+                filename, 
+                skiprows=skip_count, 
+                names=column_headers, 
+                sep=r",|\t|\s+", # Handles mixed separators in the data rows too
+                engine="python"  # Required when using regex separators in pandas
+            )
 
         return dfData
 
     ##########################################
-    def loadData(self):
+    def loadData(self, datadir=None):
         """
         Load all the data from all files supplied
 
         Args:
-            | None. 
+            | datadir (string): directory to resolve relative data file names
+                             against, or None to use the working directory.
 
         Returns:
-            | success (bolean): True if the file load was successful.
-            
+            | success (bool): True if the file load was successful.
+
         """
-    
-        # get data filenames from all sheets
-        datafilenames = dfPlotterConfig[(dfPlotterConfig['Variable']=='Datafile')]['Value'].unique()
+
+        # get data filenames from all sheets: the per-sheet Datafile rows,
+        # plus any per-trace override named in the Datafile column
+        datafilenames = list(
+            dfPlotterConfig[(dfPlotterConfig['Variable']=='Datafile')]['Value'].unique())
+        if 'Datafile' in dfPlotterConfig.columns:
+            for override in dfPlotterConfig['Datafile'].dropna().unique():
+                if (isinstance(override, str) and override.strip()
+                        and override not in datafilenames):
+                    datafilenames.append(override)
 
         self.datafiles = {}
         self.dateCreated = str(datetime.date.today())
 
         # run through all unique file names
-
         success = True
         for datafilename in datafilenames:
 
-            if os.path.isfile(datafilename):
+            # A reference may carry a '#group' fragment naming one rate group
+            # inside a multi-rate JSON file. Resolve the file part against
+            # datadir, but keep the whole reference, fragment included, as the
+            # dictionary key: prepareGraphs looks the frame up by exactly the
+            # string the config carries, and two groups of one file are two
+            # separate frames.
+            filepart, group = splitDataRef(datafilename)
+
+            datapath = filepart
+            if datadir is not None and not Path(filepart).is_absolute():
+                datapath = Path(datadir) / filepart
+
+            if Path(datapath).is_file():
 
                 # determine what type of file is this by looking at the file extension
-                extension = os.path.splitext(datafilename)[1]
-
-                # matlab format files
-                # note that here we rely on the Denel GTV matlab file which has 
-                #  * the data stored in 'DATA'
-                #  * the data column names in 'NAM'
-                #  * the time variable is called 'TIME'
-                # if other applications need matlab file capability this must be generalised
-                if 'mat' in extension:
-
-                    # load the gtv telemetry data in matlab format file
-                    # scipy reads in structures as structured numpy arrays of dtype object
-                    # returns a dictionary with variable names as keys, and loaded matrices as values.
-                    from scipy.io import loadmat
-                    dataMat = loadmat(datafilename)
-
-                    # create the dataframe
-                    self.datafiles[datafilename] = pd.DataFrame(dataMat['DATA'], columns=dataMat['NAM'])
-
-                    # set beginning of data set as time zero
-                    self.datafiles[datafilename]['TIME'] = self.datafiles[datafilename]['TIME'] - self.datafiles[datafilename]['TIME'][0]
-                    
-                    # get date 
-                    self.dateCreated = dataMat['Date_Created'][0]
+                extension = Path(datapath).suffix.lower()
 
                 # Excel data files
                 # top row is data column names
                 # Only the first sheet is loaded
-                # To be generalised to specify the sheet from the config file
-                elif 'xls' in extension:
-                    self.datafiles[datafilename] = pd.read_excel(datafilename, index_col=None)
+                # To be generalised: specify the sheet from the config file            
+                if 'xls' in extension:
+                    self.datafiles[datafilename] = pd.read_excel(datapath, index_col=None)
+
+                # JSON files: either one record array, or an object of named
+                # groups for multi-rate data. See readJsonData.
+                elif 'json' in extension:
+                    self.datafiles[datafilename] = readJsonData(datapath, group)
 
                 #  csv files
                 #  top line is column names
                 else:
-                    self.datafiles[datafilename] = self.readdatafile(datafilename)
-                    # pd.read_csv(datafilename, sep="\s+|,|;", index_col=None,engine='python')
-    
+                    self.datafiles[datafilename] = self.readdatafile(datapath)
+ 
             else:
-                print(f'Data file {datafilename} for plotting not found, please provide a valid file name in the config file!\n ')
+                print(f'Data file {datapath} for plotting not found, please provide a valid file name in the config file!\n ')
                 success = False
 
         return success
 
     ##########################################
     #
-    def run_dash(self, pageLayout,port):
+    def runDash(self, pageLayout, port, pagetitle=None):
         """
         Initiate the Dash server and serve the page
 
         Args:
             | pageLayout (dash layout): info the be served in Plotly data format
             | port (int): port number to be used
+            | pagetitle (string): browser tab title, or None for the Dash default
 
         Returns:
             | None.
-            
+
         """
         # start a dash app, which also starts a Flask server
         # it is important to set the name parameter of the Dash instance to the value __name__, 
@@ -1120,7 +1619,9 @@ class DashLinePlot():
         # directory for this Dash app
         # this must be global to stay in scope in applications that use the plotter as a module
         global dashApp
-        dashApp = dash.Dash(__name__, external_stylesheets=external_stylesheets, assets_folder=resource_path('assets'))
+        dashApp = dash.Dash(__name__,
+                            assets_folder=resourcePath('assets'),
+                            title=pagetitle if pagetitle else 'Dash')
 
         # override security restrictions: allow the serving of local pages
         dashApp.css.config.serve_locally = True
@@ -1128,6 +1629,9 @@ class DashLinePlot():
         dashApp.layout = pageLayout
 
         # We have a dynamic layout, so we can ignore the exception
+        # todo:  consider dropping suppress_callback_exceptions,
+        # or keeping it only for the dynamic tab content that genuinely needs
+        # it, so the next id mismatch is reported instead of ignored
         dashApp.config['suppress_callback_exceptions']=True
 
         # generate all callback functions for all possible graph sets & tabs
@@ -1139,7 +1643,7 @@ class DashLinePlot():
         # dev_tools features are activated by default when you run the app with app.run_server(debug=True)
         # By default, Dash includes "hot-reloading". This means that Dash will automatically refresh your browser 
         # when you make a change in your Python or CSS code.
-        dashApp.run_server(debug=False, port=port, use_reloader=False)
+        dashApp.run(debug=False, port=port, use_reloader=False)
 
     def setupCallbacks(self):
         """
@@ -1152,62 +1656,12 @@ class DashLinePlot():
             | None.
             
         """
-        # prepare for hover labels accross shared axes
-        #   * can only be done when doing subplots
-        #   * used the tricks from here
-        #        https://github.com/plotly/plotly.js/issues/2114#issuecomment-535259328
-        #  The main tricks are
-        #    1) dynamically get plot names
-        #    2) use visdcc.Runjs to reload the javasript on graph change, to reattach the event handler to 
-        #       the re-created plot. 
-        # 
-        # generate javascript strings to run in the render callback
-        # the plotid in this javascript string will be replaced with the graph id's
-        JS_STR_template = '''
-
-            var plotid = 'theplotname'
-            var plot = document.getElementById(plotid)
-
-            plot.on(
-            'plotly_hover',
-            function (eventdata) {
-                Plotly.Fx.hover(
-                plotid,
-                { xval: eventdata.xvals[0] },
-                Object.keys(plot._fullLayout._plots) // ["xy", "xy2", ...]
-                );
-            });
-            '''
-            
-        jsString = []
-        for gr in allTabs:
-            theGraph = str(gr)
-            gr_js = JS_STR_template.replace('theplotname',theGraph)
-            jsString.append(gr_js)
-
+        # Hover is now shared across every graph on the page, whether or not
+        # they are on a commonX tab, through assets/graphsync.js -- a plain
+        # Dash asset, served automatically, with no package dependency. 
         # ----------------------------------------------------------------------------------------------
         # now define all the callback functions:
 
-        # It seems that with the latest python modules, the visdcc module is not compatibl any more
-        # We need to solve this issue
-        # For the time being the subplot functionality will be disabled
-        # callback used for rendering of tabs
-        # @dashApp.callback(
-        #     [Output('tabs-content', 'children'),
-        #     Output('hover-js', 'run'),  # <-- add this to get hover on all subplot traces
-        #     ],
-        #     [Input('tabs','value')]
-        #     # INPUTS
-        # )
-        # def render_content(tab):
-        # # def render_content(tab, *args):
-        #     tabNum = int(tab.split(' ')[1])
-        #     # get the correct tab number for the js_str in complete list
-        #     jsIndex = allTabUsedIdx.index(tabNum)
-        #     js_str = jsString[jsIndex]
-        #     print(f'js_string = {js_str}\n')
-        #     return [divSets[tabNum]], js_str
-            
         @dashApp.callback(
             [Output('tabs-content', 'children')],
             [Input('tabs','value')]
@@ -1215,11 +1669,11 @@ class DashLinePlot():
         def render_content(tab):
             tabNum = int(tab.split(' ')[1])
             return [divSets[tabNum]]
-    
-        # generate data clicked and selected callback functions for all possible graphs in the config
-        # i.e. subplots as well as individual graph sets
-        # must be able to handle changed config input from the user
-        for gr in itertools.chain(allTabs,allGraphs):
+
+        # generate data clicked and selected callback functions for every
+        # graph actually placed on the page -- graphList, flattened, since
+        # it is a list of per-tab lists of graph ids
+        for gr in itertools.chain(*graphList):
             theGraph = str(gr)
 
             # initialise the clicked data storage
@@ -1227,164 +1681,280 @@ class DashLinePlot():
             data = [1, [0,0], [0,0], [0,0]]
             self.clickedData[theGraph] = data
 
+            # ---- x-range entry -------------------------------------------
+            # Apply patches only the axis range into the figure already in the
+            # browser rather than returning a new one, so the data is not sent
+            # again; on a 19000-point trace that matters.
+            #
+            # On a commonX tab every graph listens to every graph's buttons, so
+            # one entry zooms the whole tab. _group is a default argument and
+            # not a closure, because the loop variable would otherwise be
+            # rebound long before the callback ever fires.
+            xGroup = self.commonXGroups.get(theGraph, [theGraph])
+
             @dashApp.callback(
-                Output('click-'+theGraph, 'children'), # display box id and children
-                [Input(theGraph, 'clickData')],   # graph id and clickdata
-                [State(theGraph,'id')]
+                Output(theGraph, 'figure'),
+                [Input('xapply-' + sibling, 'n_clicks') for sibling in xGroup]
+                + [Input('xreset-' + sibling, 'n_clicks') for sibling in xGroup],
+                [State('xstart-' + sibling, 'value') for sibling in xGroup]
+                + [State('xend-' + sibling, 'value') for sibling in xGroup]
+                + [State('ystart-' + sibling, 'value') for sibling in xGroup]
+                + [State('yend-' + sibling, 'value') for sibling in xGroup],
+                prevent_initial_call=True
             )
-            def display_click_data(clickData, id):
-                msg = 'none clicked'
-                if clickData:
-                    # get clicked data
-                    x = clickData['points'][0]['x']
-                    y = clickData['points'][0]['y']
+            def apply_ranges(*args, _group=xGroup, _self=theGraph):
+                fired = dash.callback_context.triggered
+                if not fired or fired[0]['value'] is None:
+                    return dash.no_update
 
-                    # Index of new click data
-                    index = self.clickedData[id][0]
+                widgetId = fired[0]['prop_id'].split('.')[0]
+                action, _, sourceGraph = widgetId.partition('-')
+                if sourceGraph not in _group:
+                    return dash.no_update
 
-                    # store the new data here
-                    self.clickedData[id][index][0] = x
-                    self.clickedData[id][index][1] = y
+                # y belongs to the graph whose boxes were used and to no
+                # other: the graphs of a commonX tab have their own y scales,
+                # and often their own units, so one graph's y range is
+                # meaningless on another. x is the only axis they share.
+                mine = sourceGraph == _self
 
-                    # Calc the delta and set the index to be valid for next click
+                patched = Patch()
+                if action == 'xreset':
+                    patched['layout']['xaxis']['autorange'] = True
+                    if mine:
+                        patched['layout']['yaxis']['autorange'] = True
+                    return patched
+
+                # args arrive as inputs then states: 2n n_clicks, then n of
+                # each of xstart, xend, ystart, yend
+                count = len(_group)
+                which = _group.index(sourceGraph)
+                xStart, xEnd = args[2 * count + which], args[3 * count + which]
+                yStart, yEnd = args[4 * count + which], args[5 * count + which]
+
+                # The boxes are plain text inputs, so that no browser draws
+                # spinner arrows on them. The values therefore arrive as
+                # strings, and anything that is not a number is ignored
+                # rather than raising.
+                def number(value):
+                    try:
+                        return float(str(value).strip())
+                    except (TypeError, ValueError):
+                        return None
+
+                def span(start, end):
+                    low, high = number(start), number(end)
+                    if low is None or high is None or low >= high:
+                        return None
+                    return [low, high]
+
+                changed = False
+                xSpan = span(xStart, xEnd)
+                if xSpan is not None:
+                    patched['layout']['xaxis']['autorange'] = False
+                    patched['layout']['xaxis']['range'] = xSpan
+                    changed = True
+
+                ySpan = span(yStart, yEnd) if mine else None
+                if ySpan is not None:
+                    patched['layout']['yaxis']['autorange'] = False
+                    patched['layout']['yaxis']['range'] = ySpan
+                    changed = True
+
+                return patched if changed else dash.no_update
+
+            # ---- keep the range boxes showing what the axes actually are ---
+            # Zooming, panning or double-clicking with the mouse changes the
+            # axes without going anywhere near the boxes, which would then sit
+            # showing a stale range. Plotly reports every such change as
+            # relayoutData, so the boxes follow it.
+            #
+            # This also covers the graphs a commonX tab drives through
+            # graphsync.js: the programmatic relayout raises the same event on
+            # each of them, so their x boxes update too.
+            @dashApp.callback(
+                [Output('xstart-' + theGraph, 'value'),
+                 Output('xend-' + theGraph, 'value'),
+                 Output('ystart-' + theGraph, 'value'),
+                 Output('yend-' + theGraph, 'value')],
+                Input(theGraph, 'relayoutData'),
+                prevent_initial_call=True
+            )
+            def show_ranges(relayout):
+                if not relayout:
+                    return (dash.no_update,) * 4
+
+                def shown(value):
+                    return f'{float(value):.6g}'
+
+                def axis(name):
+                    """Start and end for one axis, or no_update if untouched."""
+                    if relayout.get(f'{name}.autorange'):
+                        # back to the full data range: blank means exactly
+                        # that, and the placeholder says what it is
+                        return '', ''
+                    low, high = f'{name}.range[0]', f'{name}.range[1]'
+                    if low in relayout and high in relayout:
+                        return shown(relayout[low]), shown(relayout[high])
+                    if f'{name}.range' in relayout:
+                        span = relayout[f'{name}.range']
+                        return shown(span[0]), shown(span[1])
+                    return dash.no_update, dash.no_update
+
+                xStart, xEnd = axis('xaxis')
+                yStart, yEnd = axis('yaxis')
+                return xStart, xEnd, yStart, yEnd
+
+            # On a commonX tab every graph's readout listens to every graph in
+            # the group, so one click fills them all at the same x. The State
+            # carries the id of the graph this particular box belongs to,
+            # which is also what keeps the loop variable out of the closure.
+            if theGraph in self.commonXGroups:
+
+                @dashApp.callback(
+                    Output('click-'+theGraph, 'children'),
+                    [Input(sibling, 'clickData')
+                     for sibling in self.commonXGroups[theGraph]],
+                    [State(theGraph, 'id')]
+                )
+                def display_common_click_data(*args):
+                    targetId = args[-1]
+                    fired = dash.callback_context.triggered
+                    if not fired or not fired[0]['value']:
+                        return 'none clicked'
+                    clicked = fired[0]['value']
+                    return self.commonClickMessage(
+                        targetId, clicked['points'][0]['x'])
+
+            else:
+
+                @dashApp.callback(
+                    Output('click-'+theGraph, 'children'), # display box id and children
+                    [Input(theGraph, 'clickData')],   # graph id and clickdata
+                    [State(theGraph,'id')]
+                )
+                def display_click_data(clickData, graphId):
+                    msg = 'none clicked'
+                    if clickData:
+                        # 'x'/'y' on the point are the scaled, offset plot
+                        # position; 'customdata' carries the true values, as
+                        # set on the trace for exactly this reason -- a
+                        # numeric trace's customdata is [trueX, trueY], an
+                        # enum trace's is trueX alone (its y was never
+                        # scaled to begin with, so its plotted code is
+                        # already what it is).
+                        point = clickData['points'][0]
+                        customdata = point.get('customdata')
+                        if isinstance(customdata, (list, tuple)) and len(customdata) == 2:
+                            x, y = float(customdata[0]), float(customdata[1])
+                        elif customdata is not None:
+                            x, y = float(customdata), point['y']
+                        else:
+                            x, y = point['x'], point['y']
+
+                        # Index of new click data
+                        index = self.clickedData[graphId][0]
+
+                        # store the new data here
+                        self.clickedData[graphId][index][0] = x
+                        self.clickedData[graphId][index][1] = y
+
+                        # Calc the delta and set the index to be valid for next click
                     
-                    indCur = index
-                    if index == 1:
-                        index = 2
-                    else:
-                        index = 1
-                    indexPrev = index
-                    self.clickedData[id][0] = index
+                        indCur = index
+                        if index == 1:
+                            index = 2
+                        else:
+                            index = 1
+                        indexPrev = index
+                        self.clickedData[graphId][0] = index
 
-                    # calc delta
-                    self.clickedData[id][3][0] = abs(self.clickedData[id][indCur][0] - self.clickedData[id][indexPrev][0])
-                    self.clickedData[id][3][1] = abs(self.clickedData[id][indCur][1] - self.clickedData[id][indexPrev][1])
+                        # calc delta
+                        self.clickedData[graphId][3][0] = abs(self.clickedData[graphId][indCur][0] - self.clickedData[graphId][indexPrev][0])
+                        self.clickedData[graphId][3][1] = abs(self.clickedData[graphId][indCur][1] - self.clickedData[graphId][indexPrev][1])
 
-                    msg =  (
-                            f'Previous [x, y]: [{self.clickedData[id][indexPrev][0]:.6f}, {self.clickedData[id][indexPrev][1]:.6f}]\n'  
-                            f'Current [x, y]: [{self.clickedData[id][indCur][0]:.6f}, {self.clickedData[id][indCur][1]:.6f}]\n'  
-                            f'Range [x, y]: [{self.clickedData[id][3][0]:.6f}, {self.clickedData[id][3][1]:.6f}]' 
-                    )
+                        msg =  (
+                                f'Previous [x, y]: [{self.clickedData[graphId][indexPrev][0]:.6f}, {self.clickedData[graphId][indexPrev][1]:.6f}]\n'  
+                                f'Current [x, y]: [{self.clickedData[graphId][indCur][0]:.6f}, {self.clickedData[graphId][indCur][1]:.6f}]\n'  
+                                f'Range [x, y]: [{self.clickedData[graphId][3][0]:.6f}, {self.clickedData[graphId][3][1]:.6f}]' 
+                        )
 
-                return msg 
+                    return msg 
+
+            # As with the click readout, a commonX tab fans the selection out:
+            # a rubber-band on any graph fills every selection box on the tab.
+            # Only the x window travels. The graphs have their own y scales and
+            # often their own units, so a y range selected on one means nothing
+            # on another; each graph reports its own y extent inside that x
+            # window instead.
+            if theGraph in self.commonXGroups:
+
+                @dashApp.callback(
+                    Output('select-'+theGraph, 'children'),
+                    [Input(sibling, 'selectedData')
+                     for sibling in self.commonXGroups[theGraph]],
+                    [State(theGraph, 'id')]
+                )
+                def display_common_selected_data(*args):
+                    targetId = args[-1]
+                    fired = dash.callback_context.triggered
+                    if not fired:
+                        return 'none selected'
+                    bounds = selectionBounds(fired[0]['value'])
+                    if bounds is None:
+                        return 'none selected'
+                    return self.commonSelectMessage(targetId, bounds[0])
+
+                continue
 
             @dashApp.callback(
                 Output('select-'+theGraph, 'children'), # display box id and children
                 [Input(theGraph, 'selectedData')]   # graph id and selectedData
             )
-            def display_selected_data(selectedData):
-
-                msg = 'none selected'
-
-                if selectedData is not None and 'range' in selectedData:
-
-                    # for divs where we work with subplots, the number of the subplot is added to the
-                    # x and y key. Get the keys programmatically.
-                    rangeDict = selectedData['range']
-                    keys = []
-                    for key in rangeDict:
-                        keys.append(key)
-
-                    x1eft = rangeDict[keys[0]][0]
-                    xright = rangeDict[keys[0]][1]
-                    dx = abs(xright - x1eft)
-
-                    ytop = rangeDict[keys[1]][1]
-                    ybottom = rangeDict[keys[1]][0]
-                    dy = abs(ybottom - ytop)
-                    
-                    msg = (
-                        f'Top left [x, y]: [{x1eft:.6f}, {ytop:.6f}]\n'  
-                        f'Bottom right [x, y]: [{xright:.6f}, {ybottom:.6f}]\n'  
-                        f'Range in [x, y]: [{dx:.6f}, {dy:.6f}]' 
-                    )
-
-                return msg 
-
-        # time slider callback for each tab - display selected values of the slider
-        for gr in allTabs:
-            theGraph = str(gr)
-
-            @dashApp.callback(
-                Output('output-container-xSlider-'+ theGraph, 'children'),
-                [Input('xSlider-'+theGraph, 'value'),
-                 Input('submit-button-'+theGraph, 'n_clicks'), 
-                ],    
-                [State('tabs', 'value'),
-                 State('minVal-'+theGraph, 'value'), State('maxVal-'+theGraph, 'value'),
-                ]             
-            )
-            def process_xSlider_data(value, nclicks, tab, mini, maxi):
-                # tab number in the current page layout
-                tabNum = int(tab.split(' ')[1])
-                graphSetName = 'graph-'+graphTabs[tabNum]
-                # select the graph data
-                dft = dfPlotterConfig[(dfPlotterConfig['Graph']==graphSetName)] 
-                # determine which input triggered the callback
-                ctx = dash.callback_context
-                clicked_id = ctx.triggered[0]['prop_id'].split('.')[0]
-                # Get slider limits from input fields
-                if 'submit' in clicked_id:
-                    start = mini
-                    if start < sliderMinValues[tabNum]:
-                        start = sliderMinValues[tabNum]
-                    end = maxi
-                    if end > sliderMaxValues[tabNum]:
-                        end = sliderMaxValues[tabNum] 
-                    value[0] = start
-                    value[1] = end
-
-                # update the graph set
-                global divSets
-                divSets[tabNum], _, _, _ = self.makeGraphSet(dft, graphSetName, value[0], value[1]) 
-                msg = f'Selected range [{value[0]:.6f}, {value[1]:.6f}]'
-                return msg
-            
-            @dashApp.callback(
-                [Output('xSlider-'+theGraph, 'value'), 
-                 Output('minVal-'+theGraph, 'value'), 
-                 Output('maxVal-'+theGraph, 'value'), 
-                ],
-                [Input('resetSlider-'+theGraph, 'n_clicks')],
-                [State('tabs', 'value')] 
-            )
-            def reset_xSlider(nclicks, tab):
-                tabNum = int(tab.split(' ')[1])
-                low = sliderMinValues[tabNum]
-                hi = sliderMaxValues[tabNum]
-                limit = [low, hi]
-                return limit, '', ''
+            def display_selected_data(selectedData, _self=theGraph):
+                # The selection box's y corners are a single plot-position
+                # pair, but each trace on this graph may carry its own
+                # Scale/Offset -- there is no one true value they all
+                # convert to. commonSelectMessage already solves exactly
+                # this by reporting each trace's own true y extent inside
+                # the shared x window; reuse it here rather than reporting
+                # the box's raw, possibly-scaled corners.
+                bounds = selectionBounds(selectedData)
+                if bounds is None:
+                    return 'none selected'
+                return self.commonSelectMessage(_self, bounds[0]) 
 
     ##########################################
-    def runPlotter(self, port, configfile, cback = True, flaskServerRunning=False):
+    def runPlotter(self, port, configfile, cback = True, flaskServerRunning=False,
+                   datadir=None, pagetitle=None):
         """
         main control plotter function
 
         Args:
-            | configfile (string): Excel configuration file defining the graphs.
-            | cback (bolean): use callbacks to populate the data on the tabs (default True)
+            | configfile (string): configuration file defining the graphs.
+            | cback (bool): use callbacks to populate the data on the tabs (default True)
                              (recommended for large data sets)
-            | flaskServerRunning (bolean): entry state of the flask server (default False)
+            | flaskServerRunning (bool): entry state of the flask server (default False)
+            | datadir (string): directory to resolve relative data file names against,
+                             or None to resolve them against the working directory
+            | pagetitle (string): browser tab title, or None for the Dash default
 
         Returns:
-            | flaskServerRunning (bolean): running state of flask server at the end of this function.
+            | flaskServerRunning (bool): running state of flask server at the end of this function.
         """
 
         # set callbacks flag as requested
         self.useCallbacks = cback
 
-        sys.argv.append("--disable-web-security")
-
         self.loadConfig(configfile)
 
-        # load all data to be available in the class 
+        # load all data to be available in the class
         # all the data files, but only once into a dict with filename as key
-        
-        if self.loadData():           
+
+        if self.loadData(datadir):
             # prepare all required graph sets
             self.prepareGraphs()
 
-        
             # now create the page we want to render
             pageLayout = self.makePage() 
 
@@ -1400,8 +1970,9 @@ class DashLinePlot():
             # setup file, open a new dash window, then only render the page with the updated information 
             # as implemented in the else section here.
             if not flaskServerRunning:
-                sys.argv.append("--disable-web-security")
-                threading.Thread(target=self.run_dash, args=(pageLayout,port), daemon=True).start()
+                threading.Thread(target=self.runDash,
+                                 args=(pageLayout, port, pagetitle),
+                                 daemon=True).start()
                 flaskServerRunning = True
             else:
                 # serve new page
@@ -1410,128 +1981,43 @@ class DashLinePlot():
         return flaskServerRunning       
     
 ##########################################
-#
-class WebViewer(QtWebEngineWidgets.QWebEngineView):
-    """
-    creates a web engine view widget
-
-    """
-    def __init__(self, parent, url):
-        """
-        Initialise the web browser widget
-
-        Args:
-            | parent (GUI element): the parent GUI element where this widget is included.
-            | url (url):the url to be browsed
-
-        Returns:
-            | None.
-
-        """
-        super().__init__(parent)
-
-        # ensure the complete view has the same style
-        # if this is not present, the tabs as well as top and bottom markdown
-        # have different style - only experienced when used as module 
-        self.setStyleSheet(external_stylesheets[0])
-
-        # create the page
-        page = QtWebEngineWidgets.QWebEnginePage(self)
-        self.setPage(page)
-        self.setUrl(QtCore.QUrl(url))
-
-##########################################
-# 
-class DashPlotWindow(QtWidgets.QMainWindow, QtWidgets.QWidget):    
-    """
-    creates a window to run the dash server in
-    """                     
-
-    def __init__(self, port, title):
-        """
-        Initialise the window
-
-        Args:
-            | port (int): the port to be used by the server.
-            | title (string): window title
-
-        Returns:
-            | None.
-
-        """
-        super().__init__()
-        self.setWindowTitle(title)
-        self.setMinimumSize(640,640)
-        
-        # browser widget
-        browserWidget = WebViewer(self,f'http://127.0.0.1:{port}')
-        browserWidget.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
-        
-        # set browser as central widget
-        self.setCentralWidget(browserWidget)
-    
-    def closeEvent(self, event):
-        """
-        captures the window close event [to be used later if required]
-        """
-        pass
-        # print('The dash window received a close event')
-
-##########################################
 # when run on the commandline this code will be executed
 #
 if __name__ == "__main__":
-       
-    try:
-        from docopt import docopt
-    except ImportError:
-        print('Install docopt using Anaconda:')
-        print('    conda install -c anaconda docopt')
-        print('or if not using Anaconda: ')
-        print('    pip install docopt')
-        print('or simply put the docopt.py script in the working folder')
-        sys.exit(0)
 
-    options = """dash-lineplot.py: Plotly dash line plotting utility.
+    import argparse
 
-        Usage:
-          dash-lineplot.py [--configfile=<configFilename>] 
-          dash-lineplot.py -h | --help 
- 
-        Options:
-          -h, --help                           Show this screen.
-          -f <configFilename>, --configfile <configFilename>    Excel config filename [default: ./dash-config.xlsx].
- 
-    """
-    # process commandline arguments
-    optionArguments = docopt(options)
+    parser = argparse.ArgumentParser(
+        description='dash-lineplot: Plotly Dash line plotting utility.')
+    parser.add_argument('-f', '--configfile', default='./dash-config.xlsx',
+                        help='Plot configuration file (default: ./dash-config.xlsx).')
+    parser.add_argument('-p', '--port', type=int, default=8050,
+                        help='Port for the local Flask server (default: 8050).')
+    parser.add_argument('-d', '--datadir', default=None,
+                        help='Directory holding the data files named in the '
+                             'configuration. Relative data file names are '
+                             'resolved against it.')
+    args = parser.parse_args()
 
-    # always use callbacks
-    # required for the slider, click data and rectangle tool to work
-    useCallbacks = True
-    # Excel file that defines the plots
-    configfile = optionArguments["--configfile"]
+    pagetitle = readPageTitle(args.configfile)
 
-    # extract the page title from the config file
-    # read the config file
-    cxls = pd.ExcelFile(configfile)
-    dfPlotterHeader = pd.read_excel(cxls, 'header')
-    dfPlotterHeader = dfPlotterHeader.set_index('Variable')
-    pagetitle = dfPlotterHeader.loc['Pagetitle','Value'] if 'Pagetitle' in dfPlotterHeader.index else 'Dash flask server for plotting'
-
-    # port used for the local Flask server
-    port = '8050' 
-           
-    # start main app 
-    appMain = QtWidgets.QApplication(sys.argv)
-       
-    # create new window and activate
-    main_widget = DashPlotWindow(port,pagetitle)
-    main_widget.show()
-
-    # serve the required data to this window
+    # always use callbacks: required for the slider, click data and the
+    # rectangle tool to work
     dashlineplotter = DashLinePlot()
-    dashlineplotter.runPlotter(port, configfile, useCallbacks)
-    
-    # exit when main window closes
-    sys.exit(appMain.exec_())
+    serving = dashlineplotter.runPlotter(args.port, args.configfile, cback=True,
+                                         datadir=args.datadir, pagetitle=pagetitle)
+
+    # loadData returns False when a data file named in the config is missing,
+    # in which case no page was ever built and no server was started.
+    if not serving:
+        print('\nnothing served: a data file named in the configuration was '
+              'not found. Fix the Datafile entries, or pass --datadir.\n')
+        sys.exit(1)
+
+    # runDash runs in a daemon thread, so the main thread has to stay alive
+    # for the server to keep serving.
+    print(f'\nserving on http://127.0.0.1:{args.port}/   (Ctrl+C to stop)\n')
+    try:
+        threading.Event().wait()
+    except KeyboardInterrupt:
+        print('\nstopped')

@@ -1,5 +1,15 @@
 \chapter{Operating System, Licenses and Major Software Versions}
 
+\begin{quotation}
+\noindent\textbf{This chapter is historical} -- see the notice in the
+Introduction. The packaged executable, PyInstaller pipeline, PySide/Qt
+window and \texttt{visdcc} it describes have all been removed; the current
+environment is defined by \texttt{environment.yml} in the repository root
+and installs with \texttt{conda env create -f environment.yml}, targeting
+Python 3.13 and current Dash/Plotly rather than the versions named below.
+This chapter's licence and requirement lists are kept only as a record of
+what an earlier version depended on.
+\end{quotation}
 
 \section{Minimum Requirements}
 \label{sec:minReq}
@@ -8,23 +18,23 @@ The software requires a 64-bit computer with either Windows 7 or 10 as operating
 Software developers and advanced users working with the script code base need to take note of the requirements discussed in these sections.
 
 
-\section{Licences}
+\section{Licences (historical)}
 \label{sec:licenses}
 
-The \texttt{dash-lineplot.py} script uses only open source Python modules. The following licenses are applicable:
+The \texttt{dash-lineplot.py} script uses only open source Python modules. The following licenses were applicable to the dependency set of the version described in this chapter; see \texttt{README.md} for the current set:
 
 \begin{itemize}
 
-  \item Python, scipy, numpy, pandas, and other 'standard' modules are licensed under the open source \ac{PSFL}.
-  \item Dash and visdcc are released under the permissive \ac{MIT} license.
-  \item PySide and Ot are released under the \ac{LGPL}. Note that PyQt5 is not used due to stricter licensing conditions.
-  \item PyInstaller is distributed under the \ac{GPL}. This software is not distributed to a client, i.e. only used to package the application.
+  \item Python, numpy, pandas, and other 'standard' modules are licensed under the open source \ac{PSFL}.
+  \item Dash is released under the permissive \ac{MIT} license. \texttt{visdcc} was too, but is no longer a dependency.
+  \item PySide and Qt are released under the \ac{LGPL}. Note that PyQt5 is not used due to stricter licensing conditions. Neither PySide nor Qt is a dependency of the current, browser-only version.
+  \item PyInstaller is distributed under the \ac{GPL}. This software is not distributed to a client, i.e. only used to package the application. The current version is not packaged with PyInstaller at all.
 \end{itemize}
 
-\section{Requirements for Software Developers and Python Script Users}
+\section{Requirements for Software Developers and Python Script Users (historical)}
 \label{sec:requirements}
 
-Software required for developers and users working with the code base:
+Software required for developers and users working with the code base, as of the version this chapter describes:
 
 \begin{itemize}
   \item Python 3.7. The preferred distribution is Anaconda 4.7 or higher.
@@ -36,6 +46,9 @@ Software required for developers and users working with the code base:
   \item PyInstaller, bundles a Python application and its dependencies into a single package, version 3.5.
   \end{itemize}
 \end{itemize}
+
+None of PySide, visdcc or PyInstaller are dependencies of the current
+version. See \texttt{environment.yml} for what is actually installed today.
 
 
 \section{Preparing the Software Developer Environment}
@@ -141,8 +154,15 @@ Any text editor can be used to edit the Python code. \ac{VS} Code is a lightweig
 This document was generated using the \LaTeX{} typesetting system. It is recommended that the MikTeX distribution be used on Windows. Download from \url{www.miktex.org} or from the \ac{TUG} web site at \url{https://tug.org/}. Suitable specialised editing tools include WinEdt (commercial but inexpensive) at \url{www.winedt.com}, or use \ac{VS} Code as \ac{IDE}.
 
 
-\section{Packaging for User Distribution}
+\section{Packaging for User Distribution (historical)}
 \label{sec:pyinstaller}
+
+\textit{The \texttt{dash-lineplot.spec} file this section describes is
+still present in the repository but describes exactly the Qt/PySide/visdcc
+build removed elsewhere in this chapter's notice; it does not produce a
+working package against the current dependency set. This is tracked in
+\texttt{suggestedwork.md}. The rest of this section is kept as a record of
+how packaging worked when it did.}
 
 PyInstaller reads a Python script and analyses the code to discover every other module and library the script needs in order to execute.
 It finds the imported modules and looks in them for \textit{import} statements, and so on recursively, until it has a complete list of modules the script may use.

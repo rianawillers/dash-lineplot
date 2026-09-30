@@ -1,11 +1,65 @@
 # dash-lineplot
 
-This script reads an Excel config file and one or more of the following file types:
-    
-    * matlab file with data in 'DATA', variable names in 'NAM' and time base in 'TIME'
+## Quick start
+
+```bash
+conda env create -f environment.yml
+conda activate dashplot
+python dash-lineplot.py --configfile dash-config.xlsx
+```
+
+Then open `http://127.0.0.1:8050/`. The page is served to the system
+browser; there is no desktop-window build. The options are `--configfile`,
+`--port` and `--datadir`.
+
+To plot a directory of JSON telemetry without writing a config by hand,
+generate one and point the server at the same directory:
+
+```bash
+python tools/config_from_run.py path/to/run-directory -o run.json
+python dash-lineplot.py --configfile run.json --datadir path/to/run-directory
+```
+
+Relative data file names in a config are resolved against `--datadir`, so a
+config never has to carry a path into somebody's data tree.
+
+To move an existing Excel config to the text format:
+
+```bash
+python tools/xlsx_config_to_json.py dash-config.xlsx
+```
+
+`dash-config.xlsx` and its converted `dash-config.json` both work against
+the bundled `data/` folder.
+
+`commonx-example.json` demonstrates `commonX`, which ties every graph on a
+tab to one x scale. Its first tab is linked and its second holds the same
+three graphs unlinked, for comparison:
+
+```bash
+python dash-lineplot.py --configfile commonx-example.json
+```
+
+## What it does
+
+This script reads a config file, in Excel or JSON form, and one or more of
+the following data file types:
+
     * csv files with column names in top row
     * first sheet of an xlsx file with column names in top row
-    
+    * json files holding a record array: a list of flat objects, one per sample
+    * json files holding named groups, one per sample rate, selected as file.json#group
+
+Matlab (`.mat`) files are no longer supported: the reader that loaded
+`DATA`/`NAM`/`TIME` from a Matlab file, and the `scipy` dependency it
+needed, were both removed. See [docs/userguide.md](docs/userguide.md) for
+the current list, including a known limitation in the plain-CSV reader.
+
+Text-valued columns are treated as enumerations: they are drawn as steps
+with the state names on the y axis. Every graph on a page shares the hover
+readout, so one pointer position reads the whole page. See
+[docs/userguide.md](docs/userguide.md).
+
 It the then proceeds to create and serve a Dash portal. 
 The page served has several elements, all constructed from the 
 information provided in the config file.
@@ -25,11 +79,13 @@ according to the Excel config file specifications.
 In the present script the default config filename is './dash-config.xlsx'.
 Any other filename can be provided on the commandline using the -f input flag.
 
-Dash starts a Flask server at the specified port, so the browser must be 
+Dash starts a Flask server at the specified port, so the browser must be
 pointing to the appropriate port number
 localhost:port
-This means that once the server is running, you can view the page with 
-the PySide browser as used here, or in an external browser.
+Once the server is running, view the page in any browser. The PySide2/PyQt5
+desktop window that used to wrap the server has been removed: PySide2 has no
+support beyond Python 3.10, and the window offered nothing the browser does
+not already do.
 
 This module requires the following data in the current directory:
 
@@ -49,92 +105,41 @@ There are numerous Dash and Plotly resources on the Internet:
     https://towardsdatascience.com/creating-an-interactive-data-app-using-plotlys-dash-356428b4699c
     https://dash.plot.ly/dash-core-components/tabs
     https://dash.plot.ly/getting-started-part-2
-    https://plot.ly/python/range-slider/
     https://plot.ly/python/click-events/
 
-This script requires openpyxl, PySide2 (PyQt5 is loaded if PySide2 not available), numpy, 
-pandas, plotly, dash, threading, openpyxl and some system modules.
+This script requires dash, plotly, pandas, numpy, openpyxl and some system
+modules. Build the environment from `environment.yml` in this folder, which
+pins version floors only and carries no `prefix`, so it solves on Linux and
+on Windows alike:
 
-To install dash when connected to the internet:
+    conda env create -f environment.yml
+    conda activate dashplot
 
-    conda config --add channels conda-forge
-    conda search dash-daq --channel conda-forge
-    conda install dash
-    conda install dash-html-components
-    conda install dash-core-components
-    conda install dash-table 
-    conda install dash-daq
+See [docs/userguide.md](docs/userguide.md#installation) for updating,
+exporting and removing the environment, running without `conda init`, and
+the packages earlier versions installed that this one deliberately does
+not.
 
-Jan 2024 install and test: build conda environment from the provided yml file
-
-    cd dash-lineplot\pythonSetup
-    conda env create -f dashplotenv.yml
-    activate dashplotenv
-    startPlotTool.bat
-
-
-Jan 2023 install: some versions had to be downgraded due to a change in Werkzeug not compatible with Dash:
-
-    https://github.com/plotly/dash/issues/1992  
-    https://stackoverflow.com/questions/30564332/how-to-download-previous-version-of-werkzeug
-
-    pip install Werkzeug==2.0.0
-    pip install dash-table==4.11.2
-    pip install dash-renderer==1.9.0
-    pip install dash-html-components==1.1.2
-    pip install dash-core-components==1.15.0
-
-This package could not be installed with 
-
-    conda install visdcc
-    
-Conflicts between versions. Installing from the bz2 file worked however.
-
-    Jan 2023 succesfull: pip install visdcc
-
-A mid-2019 off-line install required the following packages to be manually installed.
-
-    conda install dash-0.39.0-py_0.tar.bz2
-    conda install flask-compress-1.4.0-py_0.tar.bz2
-    conda install plotly-4.1.1-py_0.tar.bz2
-    conda install dash-html-components-0.14.0-py_0.tar.bz2
-    conda install dash-core-components-0.44.0-py_0.tar.bz2
-    conda install dash-table-3.6.0-py_0.tar.bz2
-    conda install dash-daq-0.1.4-py_0.tar.bz2
-    conda install plotly-orca-1.2.1-1.tar.bz2
-    conda install retrying-1.3.3-py37_1.tar.bz2
-    conda install dash-renderer-0.20.0-py_0.tar.bz2
-    conda install visdcc-0.0.40-pyh516909a_0.tar.bz2
-
-Plotly packages seem to be here:  
-
-    https://anaconda.org/plotly  
-    https://anaconda.org/plotly/repo  
-
-There are 17 packages, located under the package name, Files tab:
-
-    https://anaconda.org/plotly/plotly/files  
-    
-or   
-
-    https://anaconda.org/plotly/dash/files 
+The install notes that used to sit here described pinning Werkzeug 2.0.0
+against a Dash 1.x incompatibility, and installing `visdcc` from a bz2
+file. Both belonged to a dependency set this version no longer has, and
+neither applies to a current solve.
 
 To use as a module in another application:
 
-1. Import the DashLinePlot and DashPlotWindow classes from the module
-   
+1. Import the `DashLinePlot` class from the module. There is no
+   `DashPlotWindow`: the class that wrapped the server in a Qt desktop
+   window was removed along with PySide2/PyQt5 (see above), and nothing
+   replaces it, since the browser is the window now.
+
 1. In your code implement something like:
 
-        # create new window
-        self.dashWidget = DashPlotWindow(port)
-        self.dashWidget.show()
-
         # do actual plotting
-        useCallBacks = True
+        useCallbacks = True
         plotConfig = './dash-config.xlsx'
         port = '8050' 
         dashlineplotter = DashLinePlot()
-        dashlineplotter.runPlotter(port, plotConfig, useCallBacks)
+        dashlineplotter.runPlotter(port, plotConfig, useCallbacks)
 
 Notes from https://dash.plot.ly/getting-started:
 
@@ -212,15 +217,14 @@ A Div component is a wrapper for the HTML5 element.
 This code is subject to the licenses listed below.
 You may not use this file except in compliance with these Licenses. 
 
-Python, scipy, numpy, pandas, and other 'standard' modules are licensed under the Python License: 
+Python, numpy, pandas, openpyxl and other 'standard' modules are licensed under the Python License: 
 
-    https://docs.python.org/3.7/license.html.  
+    https://docs.python.org/3/license.html
 
-PySide: 'Qt for Python' is licensed under the LGPL3 license:
-
-    https://www.gnu.org/licenses/lgpl-3.0.html
- 
-plotly/dash/visdcc is licensed under MIT 
+plotly/dash is licensed under MIT 
 
     https://community.plot.ly/t/pricing-and-license/9714
     https://en.wikipedia.org/wiki/MIT_License
+
+PySide/Qt and visdcc were dependencies of earlier versions and have been
+removed; their licence notices went with them.

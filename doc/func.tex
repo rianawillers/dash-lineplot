@@ -1,6 +1,11 @@
 
 \chapter{Functional Description}
 
+\textit{As of this writing the script no longer opens a desktop window at
+all (see the notice in the Introduction); it serves its page directly to
+the system browser. The paragraph below describing a browser widget inside
+a window is historical.}
+
 Running the script triggers the creation of a window with one central web browser widget.
 The web browser widget is defined to have one page to be rendered on \ac{URL}:
 
@@ -36,7 +41,12 @@ Data from the following file types can be displayed:
 \begin{itemize}
   \item \ac{csv} files with column names provided in the first row,
   \item first sheet of an Excel data file with column names provided in the first row,
-  \item Matlab format file with data in 'DATA', variable names in 'NAM' and time base in 'TIME'.
+  \item \ac{JSON} files holding either one record array or an object of named groups, one group per sample rate.
 \end{itemize}
+
+Matlab format files are no longer supported: the reader that loaded data
+from \texttt{DATA}/\texttt{NAM}/\texttt{TIME} was removed along with the
+\texttt{scipy} dependency it needed. See \texttt{docs/userguide.md} for the
+current, authoritative list of supported file types.
 
 For more detail on the user level interaction, see Chapter~\ref{chap:userLevelDescription}.

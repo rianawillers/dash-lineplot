@@ -1,0 +1,547 @@
+{
+  "header": {
+    "Pagetitle": "Dash CSV File Viewer",
+    "PageTop": "The PageTop field is rendered as a Markdown block at the top of the page.  \nThis viewer plots column data in CSV files as (t,y) or (x,y) line graphs.",
+    "PageBottom": "The PageBottom field is rendered as a Markdown block at the bottom of the page.  \n\nMarkdown and HTML tables do not seem to work. See [here](https://community.plot.ly/t/tables-in-markdown/15823/3).  Maybe soon.  \nIn the meantime use [Plotly tables](https://plot.ly/python/table/), but this would require working at the code level, not just in this config file.\n",
+    "Datafile": "none",
+    "Density": "compact"
+  },
+  "sheets": {
+    "graph-RelativePosition": [
+      {
+        "Variable": "Height",
+        "Value": 300
+      },
+      {
+        "Variable": "Datafile",
+        "Value": "data/tp05j2a.rgeo"
+      },
+      {
+        "Variable": "xLabel",
+        "Value": "Time [s]"
+      },
+      {
+        "Variable": "xValue",
+        "Value": "CurrentSimTime"
+      },
+      {
+        "Variable": "xSliderStep"
+      },
+      {
+        "Variable": "Title",
+        "Value": "Relative position"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Distance [m]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-distance",
+        "LineLabel": "Distance",
+        "Colour": "BlueViolet",
+        "Linewidth": 1.0,
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0.0
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[0]",
+        "LineLabel": "X",
+        "Colour": "cyan",
+        "Linewidth": 2.0,
+        "Dash": "dash",
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0.0
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[1]",
+        "LineLabel": "Y",
+        "Colour": "goldenrod",
+        "Linewidth": 3.0,
+        "Dash": "dashdot",
+        "MarkerOpacity": 0.0
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[2]",
+        "LineLabel": "Z",
+        "Colour": "palegreen",
+        "Linewidth": 4.0,
+        "Dash": "dot",
+        "MarkerOpacity": 0.0
+      },
+      {
+        "Variable": "GraphTop",
+        "Value": "### Relative position\n\nThis graph shows the *relative* distance betwee the **missile** and **target**."
+      },
+      {
+        "Variable": "GraphBottom",
+        "Value": "Note that `Distance` is the vector sum of the three components."
+      },
+      {
+        "Variable": "Include",
+        "Value": true
+      },
+      {
+        "Variable": "ToDisk",
+        "Value": true
+      },
+      {
+        "Variable": "UseSubplots",
+        "Value": false
+      }
+    ],
+    "graph-Velocity": [
+      {
+        "Variable": "Height",
+        "Value": 300
+      },
+      {
+        "Variable": "Datafile",
+        "Value": "data/tp05j2a.rgeo"
+      },
+      {
+        "Variable": "xLabel",
+        "Value": "Time [s]",
+        "Format": ".3f"
+      },
+      {
+        "Variable": "xValue",
+        "Value": "CurrentSimTime"
+      },
+      {
+        "Variable": "Title",
+        "Value": "Relative speed"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Velocity [m/s]",
+        "Format": ".6f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-speed"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-vel-World[0]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-vel-World[1]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-vel-World[2]"
+      },
+      {
+        "Variable": "GraphTop",
+        "Value": "### Relative velocity\n\nThis graph shows the releative velocity betwee the missile and target."
+      },
+      {
+        "Variable": "GraphBottom",
+        "Value": "Note that *Rel-speed* is the vector sum of the three components."
+      },
+      {
+        "Variable": "Include",
+        "Value": true
+      },
+      {
+        "Variable": "ToDisk",
+        "Value": false
+      },
+      {
+        "Variable": "UseSubplots",
+        "Value": false
+      }
+    ],
+    "graph-xyPlot": [
+      {
+        "Variable": "Height",
+        "Value": 300
+      },
+      {
+        "Variable": "Datafile",
+        "Value": "data/tp05j2a.rgeo"
+      },
+      {
+        "Variable": "xLabel",
+        "Value": "Relative y [m]",
+        "Format": ".3f"
+      },
+      {
+        "Variable": "xValue",
+        "Value": "Rel-loc-World[1]"
+      },
+      {
+        "Variable": "xSliderStep",
+        "Value": 0.01
+      },
+      {
+        "Variable": "Title",
+        "Value": "xy Plot"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Relative x [m]",
+        "Format": ".3f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[0]"
+      },
+      {
+        "Variable": "Include",
+        "Value": false
+      },
+      {
+        "Variable": "ToDisk",
+        "Value": false
+      },
+      {
+        "Variable": "UseSubplots",
+        "Value": false
+      }
+    ],
+    "graph-MissilePosition": [
+      {
+        "Variable": "Height",
+        "Value": 300
+      },
+      {
+        "Variable": "Datafile",
+        "Value": "data/tp05j2a_Observer0.traj"
+      },
+      {
+        "Variable": "xLabel",
+        "Value": "Time [s]"
+      },
+      {
+        "Variable": "xValue",
+        "Value": "CurrentSimTime"
+      },
+      {
+        "Variable": "xSliderStep",
+        "Value": 0.01
+      },
+      {
+        "Variable": "Title",
+        "Value": "Missile position"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Distance [m]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "position.w[0]",
+        "LineLabel": "X"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "position.w[1]",
+        "LineLabel": "Y"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "position.w[2]",
+        "LineLabel": "Z"
+      },
+      {
+        "Variable": "Include",
+        "Value": false
+      },
+      {
+        "Variable": "ToDisk",
+        "Value": false
+      },
+      {
+        "Variable": "UseSubplots",
+        "Value": false
+      }
+    ],
+    "graph-Attitude": [
+      {
+        "Variable": "Height",
+        "Value": 300
+      },
+      {
+        "Variable": "Datafile",
+        "Value": "data/tp05j2a_Observer0.gmbl"
+      },
+      {
+        "Variable": "xLabel",
+        "Value": "Time [s]"
+      },
+      {
+        "Variable": "xValue",
+        "Value": "t"
+      },
+      {
+        "Variable": "xSliderStep",
+        "Value": 0.01
+      },
+      {
+        "Variable": "Title",
+        "Value": "Missile and gimbal attitude"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Attitude [rad]",
+        "Format": ".5f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "gimbrol",
+        "LineLabel": "Gimbal rol"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "gimbpit",
+        "LineLabel": "Gimbal pitch"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "gimbyaw",
+        "LineLabel": "Gimbal yaw"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "rol",
+        "LineLabel": "Missile rol/100",
+        "Scale": 0.01
+      },
+      {
+        "Variable": "yValue",
+        "Value": "pit",
+        "LineLabel": "Missile pitch"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "yaw",
+        "LineLabel": "Missile yaw"
+      },
+      {
+        "Variable": "Include",
+        "Value": false
+      },
+      {
+        "Variable": "ToDisk",
+        "Value": false
+      },
+      {
+        "Variable": "UseSubplots",
+        "Value": false
+      }
+    ],
+    "graph-gimbal": [
+      {
+        "Variable": "Height",
+        "Value": 200
+      },
+      {
+        "Variable": "Datafile",
+        "Value": "data/tp05j2a_Observer0.gmbl"
+      },
+      {
+        "Variable": "xLabel",
+        "Value": "Time [s]"
+      },
+      {
+        "Variable": "xValue",
+        "Value": "t"
+      },
+      {
+        "Variable": "xSliderStep",
+        "Value": 0.001
+      },
+      {
+        "Variable": "Title",
+        "Value": "Missile and gimbal attitude"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Attitude [rad]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "gimbrol",
+        "LineLabel": "Gimbal rol",
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0.0
+      },
+      {
+        "Variable": "yValue",
+        "Value": "gimbpit",
+        "LineLabel": "Gimbal pitch"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "gimbyaw",
+        "LineLabel": "Gimbal yaw"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "rol",
+        "LineLabel": "Missile rol/100",
+        "Scale": 0.01
+      },
+      {
+        "Variable": "yValue",
+        "Value": "pit",
+        "LineLabel": "Missile pitch"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "yaw",
+        "LineLabel": "Missile yaw"
+      },
+      {
+        "Variable": "Title",
+        "Value": "Sightline rates"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Rate [rad/s]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "slrrol",
+        "LineLabel": "SLR roll",
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0.0
+      },
+      {
+        "Variable": "yValue",
+        "Value": "slrpit",
+        "LineLabel": "SLR pitch"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "slryaw",
+        "LineLabel": "SLR yaw"
+      },
+      {
+        "Variable": "Include",
+        "Value": false
+      },
+      {
+        "Variable": "ToDisk",
+        "Value": false
+      },
+      {
+        "Variable": "UseSubplots",
+        "Value": false
+      }
+    ],
+    "graph-gimbalFromxls": [
+      {
+        "Variable": "Height",
+        "Value": 300
+      },
+      {
+        "Variable": "Datafile",
+        "Value": "data/tp05j2a_Observer0_gmbl.xlsx"
+      },
+      {
+        "Variable": "xLabel",
+        "Value": "Time [s]",
+        "Format": ".3f"
+      },
+      {
+        "Variable": "xValue",
+        "Value": "t"
+      },
+      {
+        "Variable": "xSliderStep",
+        "Value": 0.001
+      },
+      {
+        "Variable": "Title",
+        "Value": "Missile and gimbal attitude"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Attitude [rad]",
+        "Format": ".4f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "gimbrol",
+        "LineLabel": "Gimbal rol",
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0.0
+      },
+      {
+        "Variable": "yValue",
+        "Value": "gimbpit",
+        "LineLabel": "Gimbal pitch"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "gimbyaw",
+        "LineLabel": "Gimbal yaw"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "rol",
+        "LineLabel": "Missile rol/100",
+        "Scale": 0.01
+      },
+      {
+        "Variable": "yValue",
+        "Value": "pit",
+        "LineLabel": "Missile pitch"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "yaw",
+        "LineLabel": "Missile yaw"
+      },
+      {
+        "Variable": "Title",
+        "Value": "Sightline rates"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Rate [rad/s]",
+        "Format": ".6f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "slrrol",
+        "LineLabel": "SLR roll",
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0.0
+      },
+      {
+        "Variable": "yValue",
+        "Value": "slrpit",
+        "LineLabel": "SLR pitch"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "slryaw",
+        "LineLabel": "SLR yaw"
+      },
+      {
+        "Variable": "Include",
+        "Value": true
+      },
+      {
+        "Variable": "ToDisk",
+        "Value": true
+      },
+      {
+        "Variable": "UseSubplots",
+        "Value": false
+      },
+      {
+        "Variable": "commonX",
+        "Value": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+# Portable conda environment for dash-lineplot.
+#
+# Pins versions, never build strings, and carries no prefix, so one file
+# solves on both Linux and Windows. Create with:
+#
+#     conda env create -f environment.yml
+#     conda activate dashplot
+#
+name: dashplot
+channels:
+  - conda-forge
+# Floors, not equalities: the file should permit a newer solve, not freeze
+# one. These floors are what conda-forge solved on 2026-09-10.
+dependencies:
+  - python>=3.13
+  - dash>=4.4
+  - plotly>=7.0
+  - pandas>=3.0
+  - numpy>=2.5
+  - openpyxl>=3.1
+  - pip

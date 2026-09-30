@@ -1,0 +1,187 @@
+{
+  "header": {
+    "Pagetitle": "commonX demonstration",
+    "PageTop": "# commonX",
+    "PageBottom": "",
+    "Datafile": "none",
+    "Density": "compact"
+  },
+  "sheets": {
+    "graph-linked": [
+      {
+        "Variable": "Height",
+        "Value": 220
+      },
+      {
+        "Variable": "Datafile",
+        "Value": "data/tp05j2a.rgeo"
+      },
+      {
+        "Variable": "commonX",
+        "Value": true
+      },
+      {
+        "Variable": "xLabel",
+        "Value": "Time [s]",
+        "Format": ".3f"
+      },
+      {
+        "Variable": "xValue",
+        "Value": "CurrentSimTime"
+      },
+      {
+        "Variable": "GraphTop",
+        "Value": "### commonX demonstration\n\nThree graphs, one x scale. Drag-zoom any of them: all three follow. Click any of them: all three Click Data boxes fill at that same time."
+      },
+      {
+        "Variable": "Title",
+        "Value": "Relative distance"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Distance [m]",
+        "Format": ".4f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-distance",
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0
+      },
+      {
+        "Variable": "Title",
+        "Value": "Relative speed"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Speed [m/s]",
+        "Format": ".4f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-speed",
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0
+      },
+      {
+        "Variable": "Title",
+        "Value": "Relative position components"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Position [m]",
+        "Format": ".4f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[0]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[1]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[2]"
+      },
+      {
+        "Variable": "Include",
+        "Value": true
+      },
+      {
+        "Variable": "ToDisk",
+        "Value": false
+      },
+      {
+        "Variable": "UseSubplots",
+        "Value": false
+      }
+    ],
+    "graph-independent": [
+      {
+        "Variable": "Height",
+        "Value": 220
+      },
+      {
+        "Variable": "Datafile",
+        "Value": "data/tp05j2a.rgeo"
+      },
+      {
+        "Variable": "xLabel",
+        "Value": "Time [s]",
+        "Format": ".3f"
+      },
+      {
+        "Variable": "xValue",
+        "Value": "CurrentSimTime"
+      },
+      {
+        "Variable": "GraphTop",
+        "Value": "### Independent axes\n\nThe same three graphs without commonX. Zooming one leaves the others alone, and a click fills only that graph's box."
+      },
+      {
+        "Variable": "Title",
+        "Value": "Relative distance"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Distance [m]",
+        "Format": ".4f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-distance",
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0
+      },
+      {
+        "Variable": "Title",
+        "Value": "Relative speed"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Speed [m/s]",
+        "Format": ".4f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-speed",
+        "Mode": "markers+lines",
+        "MarkerOpacity": 0
+      },
+      {
+        "Variable": "Title",
+        "Value": "Relative position components"
+      },
+      {
+        "Variable": "yLabel",
+        "Value": "Position [m]",
+        "Format": ".4f"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[0]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[1]"
+      },
+      {
+        "Variable": "yValue",
+        "Value": "Rel-loc-World[2]"
+      },
+      {
+        "Variable": "Include",
+        "Value": true
+      },
+      {
+        "Variable": "ToDisk",
+        "Value": false
+      },
+      {
+        "Variable": "UseSubplots",
+        "Value": false
+      }
+    ]
+  }
+}

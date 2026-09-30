@@ -2,16 +2,29 @@
 
 \chapter{User-level Description}
 
+\begin{quotation}
+\noindent\textbf{This chapter is historical} -- see the notice in the
+Introduction. There is no packaged \texttt{dash-lineplot.exe} or
+\texttt{startPlotTool.bat} in the current version, no subplot option, and
+no x-axis slider (replaced by the X/Y range boxes beside each graph). For
+current usage instructions, see \texttt{docs/userguide.md} in the
+repository root.
+\end{quotation}
+
 \label{chap:userLevelDescription}
-\section{Starting the Dash Line Plot Graphing Utility}
+\section{Starting the Dash Line Plot Graphing Utility (historical)}
 
 
-The application is distributed
+The application was distributed, in the version this chapter describes,
 
 \begin{itemize}
   \item either as a Python script, i.e. \texttt{dash-lineplot.py},
   \item or as an executable file, i.e. \texttt{dash-lineplot.exe}.
 \end{itemize}
+
+Only the Python script exists today; run it directly with
+\texttt{python dash-lineplot.py --configfile dash-config.xlsx} as described
+in \texttt{docs/userguide.md}.
 
 Double-clicking on any one of these files will start the application.
 If the computer is not set up to associate \texttt{.py} files with the Python interpreter, open a windows command prompt window and type the following:
@@ -181,7 +194,13 @@ The same data is displayed in Figure~\ref{fig:dashview-config-imuRates-noSubplot
 \end{figure}
 
 \clearpage
-\subsection{Slider Usage}
+\subsection{Slider Usage (removed)}
+
+\textit{The slider described in this subsection no longer exists. It was
+replaced by the X range and Y range boxes beside each graph, which take
+effect immediately on Apply rather than requiring a click on the tab to
+redraw. See ``Setting the axis ranges by typing them'' in
+\texttt{docs/userguide.md}.}
 
 An x-axis slider is available at the top of each page, covering the data set x-axis data range. Refer to Figure~\ref{fig:dashview-subPlot2Slider1}. The user sets the minimum and maximum value of the x-axis with the slider handles. The text box immediately displays the selected range. The increments at which the slider values change are controlled by the specification from the configuration file. The user however has to click on the current page tab before the graphs are redrawn to display only data in the selected x-axis range, see Figure~\ref{fig:dashview-subPlot2Slider2}. The reset button will reset the x-axis limits to that of the data set.
 
@@ -215,7 +234,7 @@ The x-axis range can also be set by typing values in the text boxes just below t
 
 Two methods are available to do a measurement on the graphs (see Figure~\ref{fig:dashview-rectangleDataSelect}):
 \begin{description}
-  \item [Click Data:] The user can click on any trace to record the clicked point in the \texttt{Click Data} box below the relevant graph. When a second data point is clicked, the range in x and y are reflected in the display text box. This functionality is available for individual Plotly figures, as well as subplot figures. The click functionality can be used in conjunction with the standard Plotly zoom functionality.
+  \item [Click Data:] The user can click on any trace to record the clicked point in the \texttt{Click Data} box below the relevant graph. When a second data point is clicked, the range in x and y are reflected in the display text box. This functionality is available for individual Plotly figures (subplots have since been removed; see the notice above). The click functionality can be used in conjunction with the standard Plotly zoom functionality.
   \item [Rectangle Tool Selection Data:] The Plotly rectangle tool will only appear in the toolbar of the figure if markers are used for one or more traces in the figure. For large data sets, usage of this tool is not recommended since it slows down the drawing process. If the user prefers to use this tool, the opacity of the markers can be set to 0 in order to not clutter the graph. To measure using the rectangle tool, click on the tool in the toolbar, then draw the rectangle on the graph using the mouse. The top-left, bottom-right and range in x and y are displayed in the \texttt{Rectangle Tool Selection Data} text box to below the relevant graph. This functionality can also be used in conjunction with the Plotly zoom functionality.
 \end{description}
 
