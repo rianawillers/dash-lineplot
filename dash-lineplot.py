@@ -99,7 +99,21 @@ import base64
 import re
 from pathlib import Path
 
-import dash
+try:
+    import dash
+    from dash import dcc
+    from dash import html
+    from dash import Patch
+    from dash.dependencies import Input, Output, State
+except ImportError:
+    print("""Dash is not installed.  Create or activate the conda environment
+from the environment.yml shipped in the root folder, containing dash-lineplot.py:
+
+    conda env create -f environment.yml
+    conda activate dashplot
+""",
+          file=sys.stderr)
+    sys.exit(1)
 from dash import dcc
 from dash import html
 from dash import Patch
